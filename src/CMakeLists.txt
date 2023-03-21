@@ -8,6 +8,7 @@ set(publicHeaders
 
         "threepp/controls/FlyControls.hpp"
         "threepp/controls/OrbitControls.hpp"
+        "threepp/controls/TransformControls.hpp"
 
         "threepp/core/BufferAttribute.hpp"
         "threepp/core/BufferGeometry.hpp"
@@ -224,6 +225,7 @@ set(sources
 
         "threepp/controls/FlyControls.cpp"
         "threepp/controls/OrbitControls.cpp"
+        "threepp/controls/TransformControls.cpp"
 
         "threepp/core/BufferGeometry.cpp"
         "threepp/core/Clock.cpp"
