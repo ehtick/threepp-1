@@ -1,6 +1,8 @@
 
 #include "threepp/extras/curves/EllipseCurve.hpp"
 
+#include <cmath>
+
 using namespace threepp;
 
 EllipseCurve::EllipseCurve(float aX, float aY, float xRadius, float yRadius, float aStartAngle, float aEndAngle, bool aClockwise, float aRotation)
@@ -9,7 +11,7 @@ EllipseCurve::EllipseCurve(float aX, float aY, float xRadius, float yRadius, flo
           aStartAngle(aStartAngle), aEndAngle(aEndAngle),
           aClockwise(aClockwise), aRotation(aRotation) {}
 
-void EllipseCurve::getPoint(float t, Vector2& target) {
+void EllipseCurve::getPoint(float t, Vector2& target) const {
 
     auto& point = target;
 

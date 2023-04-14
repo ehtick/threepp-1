@@ -269,7 +269,7 @@ Matrix4& Matrix4::makeRotationFromEuler(const Euler& ee) {
 
 Matrix4& Matrix4::makeRotationFromQuaternion(const Quaternion& q) {
 
-    return this->compose(Vector3::ZEROS, q, Vector3::ONES);
+    return this->compose(Vector3::ZEROS(), q, Vector3::ONES());
 }
 
 Matrix4& Matrix4::lookAt(const Vector3& eye, const Vector3& target, const Vector3& up) {
@@ -769,4 +769,14 @@ bool Matrix4::equals(const Matrix4& matrix) const {
     }
 
     return true;
+}
+
+bool Matrix4::operator==(const Matrix4& matrix) const {
+
+    return equals(matrix);
+}
+
+bool Matrix4::operator!=(const Matrix4& matrix) const {
+
+    return !equals(matrix);
 }

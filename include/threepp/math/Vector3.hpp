@@ -1,6 +1,4 @@
-/*
- * https://github.com/mrdoob/three.js/blob/r129/src/math/Vector3.js
- */
+// https://github.com/mrdoob/three.js/blob/r129/src/math/Vector3.js
 
 #ifndef THREEPP_VECTOR3_HPP
 #define THREEPP_VECTOR3_HPP
@@ -201,18 +199,32 @@ namespace threepp {
             array[offset + 2] = this->z;
         }
 
-        static const Vector3 X;
-        static const Vector3 Y;
-        static const Vector3 Z;
-
-        static const Vector3 ONES;
-        static const Vector3 ZEROS;
-
         friend std::ostream& operator<<(std::ostream& os, const Vector3& v) {
             os << "Vector3(x=" << v.x << ", y=" << v.y << ", z=" << v.z << ")";
             return os;
         }
+
+        inline static Vector3 X() {
+            return {1, 0, 0};
+        }
+
+        inline static Vector3 Y() {
+            return {0, 1, 0};
+        }
+
+        inline static Vector3 Z() {
+            return {0, 0, 1};
+        }
+
+        inline static Vector3 ZEROS() {
+            return {0, 0, 0};
+        }
+
+        inline static Vector3 ONES() {
+            return {1, 1, 1};
+        }
     };
+
 
 }// namespace threepp
 

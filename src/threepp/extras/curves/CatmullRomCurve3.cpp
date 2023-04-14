@@ -1,6 +1,7 @@
 
 #include "threepp/extras/curves/CatmullRomCurve3.hpp"
 
+#include <cmath>
 #include <utility>
 
 using namespace threepp;
@@ -133,7 +134,7 @@ CatmullRomCurve3::CatmullRomCurve3(std::vector<Vector3> points, bool closed, Cat
     : pimpl_(std::make_unique<Impl>(*this)), points(std::move(points)), closed(closed), curveType(type), tension(tension) {}
 
 
-void CatmullRomCurve3::getPoint(float t, Vector3& point) {
+void CatmullRomCurve3::getPoint(float t, Vector3& point) const {
 
     pimpl_->getPoint(t, point);
 }

@@ -6,9 +6,9 @@
 namespace threepp::interpolants {
 
     /**
- * Bezier Curves formulas obtained from
- * http://en.wikipedia.org/wiki/Bézier_curve
- */
+     * Bezier Curves formulas obtained from
+     * http://en.wikipedia.org/wiki/Bézier_curve
+     */
 
     inline float CatmullRom(float t, float p0, float p1, float p2, float p3) {
 
@@ -73,6 +73,6 @@ namespace threepp::interpolants {
                CubicBezierP3(t, p3);
     }
 
-}// namespace threepp
+}// namespace threepp::interpolants
 
 #endif//THREEPP_INTERPOLATIONS_HPP

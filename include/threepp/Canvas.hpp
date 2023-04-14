@@ -8,6 +8,8 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <unordered_map>
+#include <variant>
 
 
 namespace threepp {
@@ -17,6 +19,7 @@ namespace threepp {
         int height;
 
         [[nodiscard]] float getAspect() const {
+
             return static_cast<float>(width) / static_cast<float>(height);
         }
     };
@@ -25,14 +28,17 @@ namespace threepp {
 
     public:
         struct Parameters;
+        typedef std::variant<bool, int, WindowSize> ParameterValue;
 
         explicit Canvas(const Parameters& params = Parameters());
+
+        explicit Canvas(const std::string& name);
+
+        Canvas(const std::string& name, const std::unordered_map<std::string, ParameterValue>& values);
 
         [[nodiscard]] const WindowSize& getSize() const;
 
         [[nodiscard]] float getAspect() const;
-
-        [[nodiscard]] int getFPS() const;
 
         void setSize(WindowSize size);
 
@@ -65,11 +71,9 @@ namespace threepp {
     public:
         struct Parameters {
 
-            Parameters()
-                : size_{640, 480},
-                  antialiasing_{0},
-                  title_{"threepp"},
-                  vsync_(true) {}
+            Parameters();
+
+            explicit Parameters(const std::unordered_map<std::string, ParameterValue>& values);
 
             Parameters& title(std::string value);
 
@@ -82,10 +86,10 @@ namespace threepp {
             Parameters& vsync(bool flag);
 
         private:
-            WindowSize size_;
-            int antialiasing_;
-            std::string title_;
-            bool vsync_;
+            WindowSize size_{640, 480};
+            int antialiasing_{0};
+            std::string title_{"threepp"};
+            bool vsync_{true};
 
             friend struct Canvas::Impl;
         };

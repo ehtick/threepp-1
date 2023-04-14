@@ -3,6 +3,8 @@
 #include "threepp/helpers/SpotLightHelper.hpp"
 #include "threepp/threepp.hpp"
 
+#include <cmath>
+
 using namespace threepp;
 
 int main() {
@@ -26,7 +28,7 @@ int main() {
 
     scene->add(AmbientLight::create(0xffffff, 0.1f));
 
-    auto helper = SpotLightHelper::create(light);
+    auto helper = SpotLightHelper::create(*light);
     scene->add(helper);
 
     auto target = Object3D::create();
@@ -41,14 +43,12 @@ int main() {
     material->emissive = 0x000000;
     auto mesh = Mesh::create(geometry, material);
     mesh->castShadow = true;
-    mesh->position.y = 2;
+    mesh->position.y = 4;
     mesh->scale *= 2;
     scene->add(mesh);
 
     const auto planeGeometry = PlaneGeometry::create(150, 150);
-    const auto planeMaterial = MeshPhongMaterial::create();
-    planeMaterial->color.setHex(Color::gray);
-    planeMaterial->side = DoubleSide;
+    const auto planeMaterial = MeshPhongMaterial::create({{"color", Color::gray}, {"side", DoubleSide}});
     auto plane = Mesh::create(planeGeometry, planeMaterial);
     plane->position.setY(-1);
     plane->rotateX(math::degToRad(-90));
@@ -66,6 +66,9 @@ int main() {
 
         target->position.x = 5 * std::sin(t);
         target->position.z = 5 * std::cos(t);
+
+//        light->position.y += 0.05f * std::cos(t);
+//        light->updateMatrixWorld();
 
         helper->update();
 

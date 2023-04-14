@@ -7,7 +7,7 @@
 using namespace threepp;
 
 
-ShapeGeometry::ShapeGeometry(const std::vector<Shape*>& shapes, unsigned int curveSegments) {
+ShapeGeometry::ShapeGeometry(const std::vector<const Shape*>& shapes, unsigned int curveSegments) {
 
     // buffers
 
@@ -21,7 +21,7 @@ ShapeGeometry::ShapeGeometry(const std::vector<Shape*>& shapes, unsigned int cur
     int groupStart = 0;
     int groupCount = 0;
 
-    std::function<void(Shape&)> addShape = [&](Shape& shape) {
+    std::function<void(const Shape&)> addShape = [&](const Shape& shape) {
         const auto indexOffset = vertices.size() / 3;
         const auto points = shape.extractPoints(curveSegments);
 
@@ -95,4 +95,27 @@ ShapeGeometry::ShapeGeometry(const std::vector<Shape*>& shapes, unsigned int cur
     this->setAttribute("position", FloatBufferAttribute::create(vertices, 3));
     this->setAttribute("normal", FloatBufferAttribute::create(normals, 3));
     this->setAttribute("uv", FloatBufferAttribute::create(uvs, 2));
+}
+
+std::shared_ptr<ShapeGeometry> ShapeGeometry::create(const Shape& shape, unsigned int curveSegments) {
+
+    return std::shared_ptr<ShapeGeometry>(new ShapeGeometry({&shape}, curveSegments));
+}
+
+std::shared_ptr<ShapeGeometry> ShapeGeometry::create(const std::vector<std::shared_ptr<Shape>>& shapes, unsigned int curveSegments) {
+
+    std::vector<const Shape*> ptrs(shapes.size());
+    std::transform(shapes.begin(), shapes.end(), ptrs.begin(), [&](auto& shape) { return shape.get(); });
+
+    return std::shared_ptr<ShapeGeometry>(new ShapeGeometry(ptrs, curveSegments));
+}
+
+std::shared_ptr<ShapeGeometry> ShapeGeometry::create(const std::vector<const Shape*>& shapes, unsigned int curveSegments) {
+
+    return std::shared_ptr<ShapeGeometry>(new ShapeGeometry(shapes, curveSegments));
+}
+
+std::string ShapeGeometry::type() const {
+
+    return "ShapeGeometry";
 }

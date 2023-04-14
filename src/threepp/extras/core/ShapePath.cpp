@@ -2,6 +2,10 @@
 #include "threepp/extras/core/ShapePath.hpp"
 #include "threepp/extras/ShapeUtils.hpp"
 
+#include <array>
+#include <limits>
+#include <memory>
+
 using namespace threepp;
 
 namespace {
@@ -95,8 +99,8 @@ namespace {
 
 ShapePath& ShapePath::moveTo(float x, float y) {
 
-    this->currentPath = new Path();
-    this->subPaths.emplace_back(this->currentPath);
+    this->currentPath = std::make_shared<Path>();
+    this->currentPath = this->subPaths.emplace_back(this->currentPath);
     this->currentPath->moveTo(x, y);
 
     return *this;
@@ -174,12 +178,12 @@ std::vector<std::shared_ptr<Shape>> ShapePath::toShapes(bool isCCW, bool noHoles
 
             if ((!holesFirst) && (newShapes[mainIdx])) mainIdx++;
 
-            newShapes.resize(mainIdx+1);
+            newShapes.resize(mainIdx + 1);
             newShapes[mainIdx] = NewShape{std::make_shared<Shape>(), tmpPoints};
             newShapes[mainIdx]->s->curves = tmpPath->curves;
 
             if (holesFirst) mainIdx++;
-            newShapeHoles.resize(mainIdx+1);
+            newShapeHoles.resize(mainIdx + 1);
             newShapeHoles[mainIdx] = {};
 
         } else {
@@ -199,7 +203,7 @@ std::vector<std::shared_ptr<Shape>> ShapePath::toShapes(bool isCCW, bool noHoles
 
         for (unsigned sIdx = 0, sLen = newShapes.size(); sIdx < sLen; sIdx++) {
 
-            betterShapeHoles.resize(sIdx+1);
+            betterShapeHoles.resize(sIdx + 1);
             betterShapeHoles[sIdx] = {};
         }
 
