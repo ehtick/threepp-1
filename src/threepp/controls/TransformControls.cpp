@@ -6,8 +6,9 @@
 
 #include "threepp/geometries/CylinderGeometry.hpp"
 
-#include "threepp/core/BufferGeometry.hpp"
 #include "threepp/geometries/BoxGeometry.hpp"
+
+#include <cmath>
 
 using namespace threepp;
 
@@ -21,7 +22,8 @@ namespace {
         for (unsigned i = 0; i <= 64 * arc; ++i) {
 
             vertices.emplace_back(0);
-            vertices.emplace_back(std::cos(static_cast<float>(i) / 32 * math::PI) * radius, std::sin(static_cast<float>(i) / 32 * math::PI) * radius);
+            vertices.emplace_back(std::cos(static_cast<float>(i) / 32 * math::PI) * radius);
+            vertices.emplace_back(std::sin(static_cast<float>(i) / 32 * math::PI) * radius);
         }
 
         geometry->setAttribute("position", FloatBufferAttribute::create(vertices, 3));
@@ -124,7 +126,6 @@ struct TransformControlsGizmo: Object3D {
 
         const auto lineGeometry = BufferGeometry::create();
         lineGeometry->setAttribute("position", FloatBufferAttribute::create(std::vector<float>{0, 0, 0, 1, 0, 0}, 3));
-
     }
 };
 
