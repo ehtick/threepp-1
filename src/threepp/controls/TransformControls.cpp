@@ -1,18 +1,29 @@
 
 #include "threepp/controls/TransformControls.hpp"
 
+#include "threepp/objects/Mesh.hpp"
+
 #include "threepp/materials/LineBasicMaterial.hpp"
 #include "threepp/materials/MeshBasicMaterial.hpp"
 
 #include "threepp/geometries/CylinderGeometry.hpp"
 
 #include "threepp/geometries/BoxGeometry.hpp"
+#include "threepp/geometries/PlaneGeometry.hpp"
+
+#include "threepp/core/Raycaster.hpp"
 
 #include <cmath>
 
 using namespace threepp;
 
 namespace {
+
+    Raycaster _raycaster;
+
+    Vector3 _tmpVector;
+    Vector2 _tempVector2;
+    Quaternion _tempQuaternion;
 
     std::shared_ptr<BufferGeometry> CircleGeometry(float radius, int arc) {
 
@@ -129,5 +140,68 @@ struct TransformControlsGizmo: Object3D {
     }
 };
 
-struct TransformControls::Impl {
+struct TransformControlsPlane: Mesh {
+
+    TransformControlsPlane()
+        : Mesh(PlaneGeometry::create(100000, 100000, 2, 2),
+               MeshBasicMaterial::create({{"visible", false},
+                                          {"wireframe", true},
+                                          {"side", DoubleSide},
+                                          {"transparent", true},
+                                          {"opacity", 0.1f},
+                                          {"toneMapped", false}})) {}
+
+    void updateMatrixWorld(bool force) override {
+    }
 };
+
+struct TransformControls::Impl {
+
+    Vector3 _offset;
+    Vector3 _startNorm;
+    Vector3 _endNorm;
+    Vector3 _cameraScale;
+
+    Vector3 _parentPosition;
+    Quaternion _parentQuaternion;
+    Quaternion _parentQuaternionInv;
+    Vector3 _parentScale;
+
+    Vector3 _worldScaleStart;
+    Quaternion _worldQuaternionInv;
+    Vector3 _worldScale;
+
+    Vector3 _positionStart;
+    Quaternion _quaternionStart;
+    Vector3 _scaleStart;
+
+    std::shared_ptr<TransformControlsGizmo> _gizmo;
+    std::shared_ptr<TransformControlsPlane> _plane;
+
+    TransformControls& scope;
+    Object3D& object;
+    Canvas& canvas;
+
+    Impl(TransformControls& scope, Object3D& object, Canvas& canvas)
+        : scope(scope), object(object), canvas(canvas),
+          _gizmo(std::make_shared<TransformControlsGizmo>()),
+          _plane(std::make_shared<TransformControlsPlane>()) {}
+
+    void updateMatrixWorld() {
+
+        object.updateMatrixWorld();
+
+        object.parent->matrixWorld->decompose(_parentPosition, _parentQuaternion, _parentScale);
+    }
+};
+
+TransformControls::TransformControls(Object3D& object, Canvas& canvas): pimpl_(std::make_unique<Impl>(*this, object, canvas)) {
+
+    this->visible = false;
+
+    this->add(pimpl_->_gizmo);
+    this->add(pimpl_->_plane);
+}
+
+
+TransformControls::~TransformControls() = default;
