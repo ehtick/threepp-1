@@ -78,12 +78,14 @@ set(publicHeaders
         "threepp/helpers/AxesHelper.hpp"
         "threepp/helpers/ArrowHelper.hpp"
         "threepp/helpers/Box3Helper.hpp"
+        "threepp/helpers/BoxHelper.hpp"
         "threepp/helpers/CameraHelper.hpp"
         "threepp/helpers/DirectionalLightHelper.hpp"
         "threepp/helpers/GridHelper.hpp"
         "threepp/helpers/HemisphereLightHelper.hpp"
         "threepp/helpers/PlaneHelper.hpp"
         "threepp/helpers/PointLightHelper.hpp"
+        "threepp/helpers/PolarGridHelper.hpp"
         "threepp/helpers/SpotLightHelper.hpp"
 
         "threepp/loaders/loaders.hpp"
@@ -216,7 +218,7 @@ set(privateHeaders
         "threepp/renderers/gl/GLUtils.hpp"
         "threepp/renderers/gl/UniformUtils.hpp"
 
-        "threepp/utils/regex_util.hpp"
+        "threepp/utils/RegexUtil.hpp"
         "threepp/utils/StringUtils.hpp"
 
         )
@@ -281,12 +283,14 @@ set(sources
         "threepp/helpers/ArrowHelper.cpp"
         "threepp/helpers/AxesHelper.cpp"
         "threepp/helpers/Box3Helper.cpp"
+        "threepp/helpers/BoxHelper.cpp"
         "threepp/helpers/CameraHelper.cpp"
         "threepp/helpers/DirectionalLightHelper.cpp"
         "threepp/helpers/GridHelper.cpp"
         "threepp/helpers/HemisphereLightHelper.cpp"
         "threepp/helpers/PlaneHelper.cpp"
         "threepp/helpers/PointLightHelper.cpp"
+        "threepp/helpers/PolarGridHelper.cpp"
         "threepp/helpers/SpotLightHelper.cpp"
 
         "threepp/loaders/ImageLoader.cpp"
@@ -401,7 +405,7 @@ if (CURL_FOUND)
     list(APPEND sources "threepp/utils/URLFetcher.cpp")
 endif()
 
-include("${PROJECT_SOURCE_DIR}/cmake/shaders.cmake")
+include("${PROJECT_SOURCE_DIR}/cmake/embed.cmake")
 
 add_library(threepp ${sources} ${privateHeaders} ${publicHeadersFull} "${generatedSourcesDir}/threepp/renderers/shaders/ShaderChunk.cpp")
 add_library(threepp::threepp ALIAS threepp)
