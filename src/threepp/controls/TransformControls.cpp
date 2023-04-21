@@ -1,6 +1,7 @@
 
 #include "threepp/controls/TransformControls.hpp"
 
+#include "threepp/cameras/Camera.hpp"
 #include "threepp/objects/Mesh.hpp"
 
 #include "threepp/materials/LineBasicMaterial.hpp"
@@ -179,28 +180,47 @@ struct TransformControls::Impl {
     std::shared_ptr<TransformControlsPlane> _plane;
 
     TransformControls& scope;
-    Object3D& object;
     Canvas& canvas;
+    Camera& camera;
 
-    Impl(TransformControls& scope, Object3D& object, Canvas& canvas)
-        : scope(scope), object(object), canvas(canvas),
+    Object3D* object = nullptr;
+
+    Impl(TransformControls& scope, Camera& camera, Canvas& canvas)
+        : scope(scope), camera(camera), canvas(canvas),
           _gizmo(std::make_shared<TransformControlsGizmo>()),
-          _plane(std::make_shared<TransformControlsPlane>()) {}
+          _plane(std::make_shared<TransformControlsPlane>()) {
 
+        this->camera.updateMatrixWorld();
+        this->camera.matrixWorld->decompose(scope.cameraPosition, scope.cameraQuaternion, _cameraScale);
+
+        scope.eye.copy(scope.cameraPosition).sub(scope.worldPosition).normalize();
+    }
+
+
+private:
     void updateMatrixWorld() {
 
-        object.updateMatrixWorld();
+        if (object) {
 
-        object.parent->matrixWorld->decompose(_parentPosition, _parentQuaternion, _parentScale);
+            object->updateMatrixWorld();
+
+            object->parent->matrixWorld->decompose(_parentPosition, _parentQuaternion, _parentScale);
+            object->matrixWorld->decompose(scope.worldPosition, scope.worldQuaternion, _worldScale);
+
+            _parentQuaternionInv.copy(_parentQuaternion).invert();
+            _worldQuaternionInv.copy(scope.worldQuaternion).invert();
+        }
     }
 };
 
-TransformControls::TransformControls(Object3D& object, Canvas& canvas): pimpl_(std::make_unique<Impl>(*this, object, canvas)) {
+TransformControls::TransformControls(Camera& camera, Canvas& canvas): pimpl_(std::make_unique<Impl>(*this, camera, canvas)) {
 
     this->visible = false;
 
     this->add(pimpl_->_gizmo);
     this->add(pimpl_->_plane);
+
+    Object3D::updateMatrixWorld();
 }
 
 

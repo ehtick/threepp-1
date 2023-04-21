@@ -23,7 +23,13 @@ namespace threepp {
         bool showY = true;
         bool showZ = true;
 
-        TransformControls(Object3D& object, Canvas& canvas);
+        Vector3 worldPosition;
+        Quaternion worldQuaternion;
+        Vector3 cameraPosition;
+        Quaternion cameraQuaternion;
+        Vector3 eye;
+
+        TransformControls(Camera& camera, Canvas& canvas);
 
         ~TransformControls();
 
