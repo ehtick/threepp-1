@@ -14,17 +14,18 @@ however much remains to be done..
 * Geometries [Box, Sphere, Plane, Cylindrical, Capsule, Tube, ++]  
 * Lights [Ambient, Directional, Point, Spot, Hemi]
 * Raycasting [Mesh, Line, Points]
-* 2D Textures, 3D text, Sprites, RenderTarget
+* 2D/3D Textures, 3D text, Sprites, RenderTarget
 * Transparency, Shadows
+* Morphtargets
 * OrbitControls, FlyControls
-* Water and Sky shader
-* Loaders [Binary STL, OBJ/MTL]
+* Water and Sky shaders
+* Loaders [Binary STL, OBJ/MTL, SVG]
 * Generic model loader based on [Assimp](https://github.com/assimp/assimp)
 * Easy integration with [Dear ImGui](https://github.com/ocornut/imgui)
 * Easy integration with [Bullet](https://github.com/bulletphysics/bullet3)
 * Easy to use text rendering using [glText](https://github.com/vallentin/glText)
 
-Builds on Windows, Linux, MacOS, MinGW.
+Builds on Windows, Linux, MacOS and MinGW.
 
 ### But, but why?
 
@@ -51,12 +52,26 @@ Under MinGW you'll need to specify the vcpkg triplet:
 -DVCPKG_HOST_TRIPLET=x64-mingw-[static|dynamic]    # <-- needed only if MSVC cannot be found. 
 ```
 
+##### Optional downstream dependencies
+
+When consuming `threepp` in your own application, 
+some headers will require additional dependencies in order to compile.
+
+| **Header**     | **Dependency** | **Description**                               |
+|----------------|----------------|-----------------------------------------------|
+| AssimpLoader   | assimp         | Import a wide variety of different 3D formats |
+| FontLoader     | nlohmann-json  | Import fonts to be used for 3D text           |
+| SVGLoader      | pugixml        | Import SVG files                              |
+| ImguiContext   | imgui          | ImGUI utility                                 |
+| BulletPhysics  | bullet3        | Bullet utility                                |
+
+
 ### Implementation notes
 
 In general, you'll find that math classes are value types, while `threepp` expect smart pointers for other types. 
 For convenience, geometries, materials etc. has a static `::create` function that returns a `std::shared_ptr`.
-There should never be a need to handle memory explicitly using `threepp`.
-Furthermore, materials, geometries and textures are automatically disposed when they are no longer referenced.
+Thus, you don't necessarily need to handle memory explicitly using `threepp`.
+Furthermore, materials, geometries and textures are automatically disposed when they go out of scope.
 Yay!
 
 ### Example
@@ -66,61 +81,57 @@ Yay!
 
 using namespace threepp;
 
+auto createBox(const Vector3& pos, const Color& color) {
+    auto geometry = BoxGeometry::create();
+    auto material = MeshPhongMaterial::create();
+    material->color = color;
+    auto box = Mesh::create(geometry, material);
+    box->position.copy(pos);
+    
+    return box;
+}
+
 int main() {
 
-    Canvas canvas;
-    GLRenderer renderer{canvas};
+    Canvas canvas("Demo");
+    GLRenderer renderer{canvas.size()};
 
     auto scene = Scene::create();
-    auto camera = PerspectiveCamera::create(75, canvas.getAspect(), 0.1f, 100);
+    auto camera = PerspectiveCamera::create(75, canvas.aspect(), 0.1f, 100);
     camera->position.z = 5;
     
-    OrbitControls controls{camera, canvas};
+    OrbitControls controls{*camera, canvas};
 
     auto light = HemisphereLight::create();
     scene->add(light);
 
     auto group = Group::create();
-
-    {
-        auto boxGeometry = BoxGeometry::create();
-        auto boxMaterial = MeshPhongMaterial::create();
-        boxMaterial->color = Color::red;
-        auto box = Mesh::create(boxGeometry, boxMaterial);
-        box->position.x = -1;
-        group->add(box);
-    }
-
-    {
-        auto boxGeometry = BoxGeometry::create();
-        auto boxMaterial = MeshPhongMaterial::create();
-        boxMaterial->color = Color::green;
-        auto box = Mesh::create(boxGeometry, boxMaterial);
-        box->position.x = 1;
-        group->add(box);
-    }
-
+    group->add(createBox({-1, 0, 0}, Color::green));
+    group->add(createBox({1, 0, 0}, Color::red));
     scene->add(group);
 
     auto planeGeometry = PlaneGeometry::create(5, 5);
     auto planeMaterial = MeshLambertMaterial::create();
     planeMaterial->color = Color::gray;
-    planeMaterial->side = DoubleSide;
+    planeMaterial->side = Side::Double;
     auto plane = Mesh::create(planeGeometry, planeMaterial);
     plane->position.y = -1;
     plane->rotateX(math::degToRad(90));
     scene->add(plane);
 
     canvas.onWindowResize([&](WindowSize size) {
-        camera->aspect = size.getAspect();
+        camera->aspect = size.aspect();
         camera->updateProjectionMatrix();
         renderer.setSize(size);
     });
     
-    canvas.animate([&](float dt) {
-        group->rotation.y += 0.5f * dt;
+    Clock clock;
+    canvas.animate([&]() {
+        
+        float dt = clock.getDelta();
+        group->rotation.y += 1.f * dt;
 
-        renderer.render(scene, camera);
+        renderer.render(*scene, *camera);
     });
 }
 

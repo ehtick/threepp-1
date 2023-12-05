@@ -38,7 +38,7 @@ Vector2& Vector2::setX(float value) {
 
 Vector2& Vector2::setY(float value) {
 
-    y = value;
+    this->y = value;
 
     return *this;
 }
@@ -362,4 +362,17 @@ Vector2 Vector2::operator-(const Vector2& other) const {
 Vector2& Vector2::operator-=(const Vector2& other) {
 
     return sub(other);
+}
+
+Vector2& Vector2::rotateAround(const Vector2& center, float angle) {
+
+    float c = std::cos(angle), s = std::sin(angle);
+
+    float x = this->x - center.x;
+    float y = this->y - center.y;
+
+    this->x = x * c - y * s + center.x;
+    this->y = x * s + y * c + center.y;
+
+    return *this;
 }

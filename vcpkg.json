@@ -4,17 +4,15 @@
   "dependencies": [
     {
       "name": "glad",
-      "features": ["gl-api-41"]
+      "features": ["gl-api-41", "extensions"]
     },
     "glfw3",
     "stb"
   ],
   "features": {
-    "curl": {
-      "description": "Enable URLFetcher in library.",
-      "dependencies": [
-        "curl"
-      ]
+    "audio": {
+      "description": "Audio support",
+      "dependencies": ["miniaudio"]
     },
     "json": {
       "description": "Enable JSON support in library. Required to use Fonts.",
@@ -43,11 +41,15 @@
         }
       ]
     },
-    "matplotlib": {
-      "description": "Enable plotting in examples",
+    "pugixml": {
+      "description": "Enable SVGLoader",
       "dependencies": [
-        "matplotlib-cpp"
+        "pugixml"
       ]
+    },
+    "opencv": {
+      "description": "Enable OpenCV in examples",
+      "dependencies": ["opencv"]
     }
   }
 }

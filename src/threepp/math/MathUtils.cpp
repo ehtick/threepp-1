@@ -31,11 +31,15 @@ std::string math::generateUUID() {
     for (auto& c : uuid) {
         c = static_cast<char>(std::tolower(c));
     }
+
     return uuid;
 }
 
+float math::euclideanModulo(float n, float m) {
 
-// Linear mapping from range <a1, a2> to range <b1, b2>
+    return std::fmod(((std::fmod(n, m) + m) + m), m);
+}
+
 float math::mapLinear(float x, float a1, float a2, float b1, float b2) {
 
     return b1 + (x - a1) * (b2 - b1) / (a2 - a1);
@@ -76,27 +80,27 @@ float math::radToDeg(float radians) {
     return radians * RAD2DEG;
 }
 
-int math::randomInRange(int min, int max) {
+int math::randInt(int low, int high) {
 
     static std::random_device rd;
     static std::mt19937 e2(rd());
 
-    std::uniform_int_distribution<> dist(min, max);
+    std::uniform_int_distribution<> dist(low, high);
 
     return dist(e2);
 }
 
-float math::random() {
+float math::randFloatSpread(float range) {
 
-    static std::random_device rd;
-    static std::mt19937 e2(rd());
-
-    static std::uniform_real_distribution<float> dist(0, 1);
-
-    return dist(e2);
+    return range * (0.5f - randFloat(0, 1));
 }
 
-float math::randomInRange(float min, float max) {
+float math::randFloat() {
+
+    return randFloat(0, 1);
+}
+
+float math::randFloat(float min, float max) {
 
     static std::random_device rd;
     static std::mt19937 e2(rd());
@@ -111,12 +115,12 @@ bool math::isPowerOfTwo(int value) {
     return (value & (value - 1)) == 0 && value != 0;
 }
 
-float math::floorPowerOfTwo(float value) {
+int math::floorPowerOfTwo(float value) {
 
-    return std::pow(2.f, floor(std::log(value) / LN2));
+    return std::pow(2.f, std::floor(std::log(value) / LN2));
 }
 
-float math::ceilPowerOfTwo(float value) {
+int math::ceilPowerOfTwo(float value) {
 
     return std::pow(2.f, std::ceil(std::log(value) / LN2));
 }

@@ -16,6 +16,8 @@ namespace threepp {
 
     public:
         Color color;
+        Path* currentPath;
+        std::vector<std::shared_ptr<Path>> subPaths;
 
         ShapePath& moveTo(float x, float y);
 
@@ -27,11 +29,7 @@ namespace threepp {
 
         ShapePath& splineThru(const std::vector<Vector2>& pts);
 
-        [[nodiscard]] std::vector<std::shared_ptr<Shape>> toShapes(bool isCCW = false, bool noHoles = false) const;
-
-    private:
-        std::shared_ptr<Path> currentPath;
-        std::vector<std::shared_ptr<Path>> subPaths;
+        [[nodiscard]] std::vector<std::shared_ptr<Shape>> toShapes(bool isCCW = false) const;
     };
 
 }// namespace threepp

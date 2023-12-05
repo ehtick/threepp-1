@@ -2,9 +2,11 @@ set(publicHeaderDir ${PROJECT_SOURCE_DIR}/include)
 
 set(publicHeaders
 
-        "threepp/Canvas.hpp"
         "threepp/constants.hpp"
         "threepp/threepp.hpp"
+
+        "threepp/canvas/Canvas.hpp"
+        "threepp/canvas/WindowSize.hpp"
 
         "threepp/controls/FlyControls.hpp"
         "threepp/controls/OrbitControls.hpp"
@@ -30,10 +32,10 @@ set(publicHeaders
         "threepp/cameras/PerspectiveCamera.hpp"
         "threepp/cameras/OrthographicCamera.hpp"
 
-        "threepp/extras/bullet/BulletWrapper.hpp"
         "threepp/extras/ShapeUtils.hpp"
         "threepp/extras/core/Curve.hpp"
         "threepp/extras/core/CurvePath.hpp"
+        "threepp/extras/core/Font.hpp"
         "threepp/extras/core/Interpolations.hpp"
         "threepp/extras/core/Path.hpp"
         "threepp/extras/core/Shape.hpp"
@@ -46,10 +48,11 @@ set(publicHeaders
         "threepp/extras/curves/SplineCurve.hpp"
         "threepp/extras/curves/QuadraticBezierCurve.hpp"
         "threepp/extras/curves/QuadraticBezierCurve3.hpp"
-        "threepp/extras/imgui/imgui_context.hpp"
+        "threepp/extras/imgui/ImguiContext.hpp"
 
         "threepp/input/KeyListener.hpp"
         "threepp/input/MouseListener.hpp"
+        "threepp/input/PeripheralsEventSource.hpp"
 
         "threepp/geometries/geometries.hpp"
         "threepp/geometries/BoxGeometry.hpp"
@@ -69,6 +72,7 @@ set(publicHeaders
         "threepp/geometries/RingGeometry.hpp"
         "threepp/geometries/ShapeGeometry.hpp"
         "threepp/geometries/SphereGeometry.hpp"
+        "threepp/geometries/TextGeometry.hpp"
         "threepp/geometries/TorusGeometry.hpp"
         "threepp/geometries/TorusKnotGeometry.hpp"
         "threepp/geometries/TubeGeometry.hpp"
@@ -86,6 +90,7 @@ set(publicHeaders
         "threepp/helpers/PlaneHelper.hpp"
         "threepp/helpers/PointLightHelper.hpp"
         "threepp/helpers/PolarGridHelper.hpp"
+        "threepp/helpers/SkeletonHelper.hpp"
         "threepp/helpers/SpotLightHelper.hpp"
 
         "threepp/loaders/loaders.hpp"
@@ -94,6 +99,7 @@ set(publicHeaders
         "threepp/loaders/ImageLoader.hpp"
         "threepp/loaders/OBJLoader.hpp"
         "threepp/loaders/STLLoader.hpp"
+        "threepp/loaders/SVGLoader.hpp"
         "threepp/loaders/TextureLoader.hpp"
 
         "threepp/materials/Material.hpp"
@@ -135,6 +141,7 @@ set(publicHeaders
         "threepp/math/Vector4.hpp"
         "threepp/math/Quaternion.hpp"
 
+        "threepp/objects/Bone.hpp"
         "threepp/objects/Group.hpp"
         "threepp/objects/InstancedMesh.hpp"
         "threepp/objects/Line.hpp"
@@ -142,7 +149,10 @@ set(publicHeaders
         "threepp/objects/LineSegments.hpp"
         "threepp/objects/LOD.hpp"
         "threepp/objects/Mesh.hpp"
+        "threepp/objects/ObjectWithMorphTargetInfluences.hpp"
         "threepp/objects/Sky.hpp"
+        "threepp/objects/Skeleton.hpp"
+        "threepp/objects/SkinnedMesh.hpp"
         "threepp/objects/Sprite.hpp"
         "threepp/objects/Points.hpp"
         "threepp/objects/Reflector.hpp"
@@ -155,8 +165,8 @@ set(publicHeaders
         "threepp/textures/Texture.hpp"
 
         "threepp/utils/BufferGeometryUtils.hpp"
+        "threepp/utils/StringUtils.hpp"
         "threepp/utils/ThreadPool.hpp"
-        "threepp/utils/URLFetcher.hpp"
 
         "threepp/lights/lights.hpp"
         "threepp/lights/Light.hpp"
@@ -171,9 +181,9 @@ set(publicHeaders
         "threepp/lights/SpotLight.hpp"
         "threepp/lights/SpotLightShadow.hpp"
 
-        "threepp/renderers/TextHandle.hpp"
         "threepp/renderers/GLRenderer.hpp"
         "threepp/renderers/GLRenderTarget.hpp"
+        "threepp/renderers/TextRenderer.hpp"
 
         "threepp/renderers/gl/GLInfo.hpp"
         "threepp/renderers/gl/GLShadowMap.hpp"
@@ -207,6 +217,7 @@ set(privateHeaders
         "threepp/renderers/gl/GLGeometries.hpp"
         "threepp/renderers/gl/GLLights.hpp"
         "threepp/renderers/gl/GLMaterials.hpp"
+        "threepp/renderers/gl/GLMorphTargets.hpp"
         "threepp/renderers/gl/GLObjects.hpp"
         "threepp/renderers/gl/GLProperties.hpp"
         "threepp/renderers/gl/GLProgram.hpp"
@@ -219,13 +230,12 @@ set(privateHeaders
         "threepp/renderers/gl/UniformUtils.hpp"
 
         "threepp/utils/RegexUtil.hpp"
-        "threepp/utils/StringUtils.hpp"
 
         )
 
 set(sources
 
-        "threepp/Canvas.cpp"
+        "threepp/canvas/Canvas.cpp"
 
         "threepp/cameras/Camera.cpp"
         "threepp/cameras/PerspectiveCamera.cpp"
@@ -246,6 +256,7 @@ set(sources
         "threepp/extras/ShapeUtils.cpp"
         "threepp/extras/core/Curve.cpp"
         "threepp/extras/core/CurvePath.cpp"
+        "threepp/extras/core/Font.cpp"
         "threepp/extras/core/Path.cpp"
         "threepp/extras/core/Shape.cpp"
         "threepp/extras/core/ShapePath.cpp"
@@ -291,7 +302,10 @@ set(sources
         "threepp/helpers/PlaneHelper.cpp"
         "threepp/helpers/PointLightHelper.cpp"
         "threepp/helpers/PolarGridHelper.cpp"
+        "threepp/helpers/SkeletonHelper.cpp"
         "threepp/helpers/SpotLightHelper.cpp"
+
+        "threepp/input/PeripheralsEventSource.cpp"
 
         "threepp/loaders/ImageLoader.cpp"
         "threepp/loaders/MTLLoader.cpp"
@@ -356,16 +370,18 @@ set(sources
         "threepp/objects/InstancedMesh.cpp"
         "threepp/objects/Mesh.cpp"
         "threepp/objects/Points.cpp"
+        "threepp/objects/Skeleton.cpp"
+        "threepp/objects/SkinnedMesh.cpp"
         "threepp/objects/Sky.cpp"
         "threepp/objects/Sprite.cpp"
         "threepp/objects/Reflector.cpp"
         "threepp/objects/Water.cpp"
 
         "threepp/textures/Texture.cpp"
-        "threepp/textures/DataTexture.cpp"
         "threepp/textures/DataTexture3D.cpp"
 
         "threepp/utils/BufferGeometryUtils.cpp"
+        "threepp/utils/StringUtils.cpp"
         "threepp/utils/ThreadPool.cpp"
 
         "threepp/renderers/TextHandle.cpp"
@@ -376,7 +392,6 @@ set(sources
         "threepp/renderers/gl/GLBackground.cpp"
         "threepp/renderers/gl/GLBindingStates.cpp"
         "threepp/renderers/gl/GLBufferRenderer.cpp"
-        "threepp/renderers/gl/GLCapabilities.cpp"
         "threepp/renderers/gl/GLClipping.cpp"
         "threepp/renderers/gl/GLGeometries.cpp"
         "threepp/renderers/gl/GLInfo.cpp"
@@ -397,14 +412,6 @@ set(sources
 
         )
 
-if (nlohmann_json_FOUND)
-    list(APPEND sources "threepp/loaders/FontLoader.cpp" "threepp/extras/core/Font.cpp")
-endif()
-
-if (CURL_FOUND)
-    list(APPEND sources "threepp/utils/URLFetcher.cpp")
-endif()
-
 include("${PROJECT_SOURCE_DIR}/cmake/embed.cmake")
 
 add_library(threepp ${sources} ${privateHeaders} ${publicHeadersFull} "${generatedSourcesDir}/threepp/renderers/shaders/ShaderChunk.cpp")
@@ -414,16 +421,9 @@ target_link_libraries(threepp
         PRIVATE
         glad::glad
         glfw::glfw)
-if (nlohmann_json_FOUND)
-    target_link_libraries(threepp PRIVATE nlohmann_json::nlohmann_json)
-endif()
-if (CURL_FOUND)
-    target_link_libraries(threepp PRIVATE CURL::libcurl)
-    target_compile_definitions(threepp PUBLIC "THREEPP_WITH_CURL")
-endif()
-if(UNIX)
+if (UNIX)
     target_link_libraries(threepp PRIVATE pthread)
-endif()
+endif ()
 target_include_directories(threepp
         PUBLIC
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>"

@@ -1,4 +1,4 @@
-#include "threepp/extras/imgui/imgui_context.hpp"
+#include "threepp/extras/imgui/ImguiContext.hpp"
 #include "threepp/threepp.hpp"
 
 using namespace threepp;
@@ -11,6 +11,17 @@ namespace {
         return LineSegments::create(WireframeGeometry::create(geometry), material);
     }
 
+    auto createMesh(const BoxGeometry::Params& params) {
+
+        auto geometry = BoxGeometry::create(params);
+        auto material = MeshBasicMaterial::create();
+
+        Mesh mesh(geometry, material);
+        mesh.add(createWireframe(*geometry));
+
+        return mesh;
+    }
+
     void updateGroupGeometry(Mesh& mesh, const BoxGeometry::Params& params) {
 
         auto g = BoxGeometry::create(params);
@@ -20,42 +31,32 @@ namespace {
         mesh.add(createWireframe(*g));
     }
 
-    auto createMesh(const BoxGeometry::Params& params) {
-
-        auto geometry = BoxGeometry::create(params);
-        auto material = MeshBasicMaterial::create();
-
-        auto mesh = Mesh::create(geometry, material);
-        mesh->add(createWireframe(*geometry));
-
-        return mesh;
-    }
 
 }// namespace
 
 int main() {
 
-    Canvas canvas("BoxGeometry", {{"antialiasing", 4}});
-    GLRenderer renderer(canvas);
+    Canvas canvas("BoxGeometry", {{"aa", 4}});
+    GLRenderer renderer(canvas.size());
 
-    auto scene = Scene::create();
-    scene->background = Color::blue;
-    auto camera = PerspectiveCamera::create(60, canvas.getAspect(), 0.1f, 100);
-    camera->position.z = 5;
+    Scene scene;
+    scene.background = Color::blue;
+    PerspectiveCamera camera(60, canvas.aspect(), 0.1f, 100);
+    camera.position.z = 5;
 
     BoxGeometry::Params params{};
 
     auto mesh = createMesh(params);
-    scene->add(mesh);
+    scene.add(mesh);
 
     canvas.onWindowResize([&](WindowSize size) {
-        camera->aspect = size.getAspect();
-        camera->updateProjectionMatrix();
+        camera.aspect = size.aspect();
+        camera.updateProjectionMatrix();
         renderer.setSize(size);
     });
 
     bool paramsChanged = false;
-    auto ui = imgui_functional_context(canvas.window_ptr(), [&] {
+    auto ui = ImguiFunctionalContext(canvas.windowPtr(), [&] {
         ImGui::SetNextWindowPos({0, 0}, 0, {0, 0});
         ImGui::SetNextWindowSize({230, 0}, 0);
         ImGui::Begin("BoxGeometry");
@@ -74,9 +75,12 @@ int main() {
         ImGui::End();
     });
 
-    canvas.animate([&](float dt) {
-        mesh->rotation.y += 0.8f * dt;
-        mesh->rotation.x += 0.5f * dt;
+    Clock clock;
+    canvas.animate([&]() {
+        float dt = clock.getDelta();
+
+        mesh.rotation.y += 0.8f * dt;
+        mesh.rotation.x += 0.5f * dt;
 
         renderer.render(scene, camera);
 
@@ -84,7 +88,7 @@ int main() {
 
         if (paramsChanged) {
             paramsChanged = false;
-            updateGroupGeometry(*mesh, params);
+            updateGroupGeometry(mesh, params);
         }
     });
 }

@@ -8,6 +8,7 @@ option(THREEPP_BUILD_EXAMPLE_PROJECTS "Build example projects" OFF)
 option(THREEPP_BUILD_TESTS "Build test suite" ON)
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
+
 # ==============================================================================
 # Global internal configuration
 # ==============================================================================
@@ -20,15 +21,13 @@ include(GNUInstallDirs)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 
+
 # ==============================================================================
 # Dependencies
 # ==============================================================================
 
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glad CONFIG REQUIRED)
-find_package(nlohmann_json CONFIG QUIET)
-find_package(CURL CONFIG QUIET)
-find_package(assimp CONFIG QUIET)
 find_package(stb CONFIG QUIET)
 
 if (NOT TARGET "glfw::glfw" AND TARGET "glfw")
@@ -49,6 +48,10 @@ FetchContent_Populate(glText)
 set(gltext_INCLUDE_DIR "${gltext_SOURCE_DIR}")
 
 
+# ==============================================================================
+# Targets
+# ==============================================================================
+
 add_subdirectory(src)
 
 if (THREEPP_BUILD_EXAMPLES)
@@ -60,7 +63,7 @@ if (THREEPP_BUILD_TESTS)
     FetchContent_Declare(
             Catch2
             GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-            GIT_TAG v2.13.8
+            GIT_TAG v3.4.0
     )
     FetchContent_MakeAvailable(Catch2)
 
@@ -77,6 +80,7 @@ endif ()
 file(COPY "${CMAKE_CURRENT_LIST_DIR}/data/models" DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bin/data)
 file(COPY "${CMAKE_CURRENT_LIST_DIR}/data/textures" DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bin/data)
 file(COPY "${CMAKE_CURRENT_LIST_DIR}/data/fonts" DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bin/data)
+file(COPY "${CMAKE_CURRENT_LIST_DIR}/data/sounds" DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bin/data)
 
 
 # ==============================================================================

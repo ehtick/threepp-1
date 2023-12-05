@@ -5,7 +5,6 @@
 
 #include "threepp/cameras/Camera.hpp"
 #include "threepp/lights/Light.hpp"
-#include "threepp/lights/light_interfaces.hpp"
 
 #include "threepp/math/Frustum.hpp"
 #include "threepp/math/Vector2.hpp"
@@ -24,15 +23,19 @@ namespace threepp {
         float normalBias = 0;
         float radius = 1;
 
-        Vector2 mapSize{512, 512};
+        Vector2 mapSize{1024, 1024};
 
-        std::shared_ptr<GLRenderTarget> map;
-        std::shared_ptr<GLRenderTarget> mapPass;
+        std::unique_ptr<GLRenderTarget> map;
+        std::unique_ptr<GLRenderTarget> mapPass;
 
         Matrix4 matrix;
 
         bool autoUpdate = true;
         bool needsUpdate = false;
+
+        LightShadow(LightShadow&&) = delete;
+        LightShadow(const LightShadow&) = delete;
+        LightShadow& operator=(const LightShadow&) = delete;
 
         [[nodiscard]] size_t getViewportCount() const;
 
@@ -46,11 +49,15 @@ namespace threepp {
 
         void dispose();
 
-        virtual ~LightShadow() = default;
+        virtual ~LightShadow();
 
     protected:
         Frustum _frustum;
         Vector2 _frameExtents{1, 1};
+
+        Vector3 _lightPositionWorld;
+        Vector3 _lookTarget;
+        Matrix4 _projScreenMatrix;
 
         std::vector<Vector4> _viewports{Vector4(0, 0, 1, 1)};
 

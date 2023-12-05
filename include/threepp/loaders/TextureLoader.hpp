@@ -15,11 +15,9 @@ namespace threepp {
         explicit TextureLoader(bool useCache = true);
 
         std::shared_ptr<Texture> load(const std::filesystem::path& path, bool flipY = true);
-        std::shared_ptr<Texture> loadTexture(const std::filesystem::path& path, bool flipY = true);
 
-#ifdef THREEPP_WITH_CURL
-        std::shared_ptr<Texture> loadFromUrl(const std::string& url, bool flipY = true);
-#endif
+        std::shared_ptr<Texture> loadFromMemory(const std::string& name, const std::vector<unsigned char>& data, bool flipY = true);
+
         void clearCache();
 
         ~TextureLoader();

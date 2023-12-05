@@ -13,8 +13,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04]
-        compiler_version: [9]
+        os: [ubuntu-22.04]
+        compiler_version: [11]
 
     steps:
     - uses: actions/checkout@v3
@@ -33,13 +33,13 @@ jobs:
       id: runvcpkg
       with:
         vcpkgDirectory: '${{ github.workspace }}/vcpkg'
-        vcpkgGitCommitId: '12c2a93b4007612b5ffa980c9d2235eb0bcac10f'
+        vcpkgGitCommitId: '4cac260c4b7331538d31886f57739fea0bffa27e'
         vcpkgJsonGlob: 'vcpkg.json'
         appendedCacheKey: vcpkginstall
 
     - name: Configure and build
       run: |
-        cmake . -B build -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_MANIFEST_FEATURES="imgui;assimp" -DCMAKE_BUILD_TYPE=Release
+        cmake . -B build -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_MANIFEST_FEATURES="imgui;assimp;pugixml;json" -DTHREEPP_WITH_SVG_FEATURE=ON -DCMAKE_BUILD_TYPE=Release
         cmake --build build
 
     - name: Test
@@ -54,7 +54,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2019, windows-2022]
+        os: [windows-2022]
 
     steps:
       - uses: actions/checkout@v3
@@ -64,7 +64,7 @@ jobs:
         id: runvcpkg
         with:
           vcpkgDirectory: '${{ github.workspace }}/vcpkg'
-          vcpkgGitCommitId: '12c2a93b4007612b5ffa980c9d2235eb0bcac10f'
+          vcpkgGitCommitId: '4cac260c4b7331538d31886f57739fea0bffa27e'
           vcpkgJsonGlob: 'vcpkg.json'
           appendedCacheKey: vcpkginstall
 
@@ -85,7 +85,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-11]
+        os: [macos-12]
 
     steps:
       - uses: actions/checkout@v3
@@ -95,7 +95,7 @@ jobs:
         id: runvcpkg
         with:
           vcpkgDirectory: '${{ github.workspace }}/vcpkg'
-          vcpkgGitCommitId: '12c2a93b4007612b5ffa980c9d2235eb0bcac10f'
+          vcpkgGitCommitId: '4cac260c4b7331538d31886f57739fea0bffa27e'
           vcpkgJsonGlob: 'vcpkg.json'
           appendedCacheKey: vcpkginstall
 

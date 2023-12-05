@@ -7,16 +7,15 @@
 using namespace threepp;
 
 #ifdef HAS_IMGUI
-#include "threepp/extras/imgui/imgui_context.hpp"
+#include "threepp/extras/imgui/ImguiContext.hpp"
 
 #include "kine/Kine.hpp"
 #include "kine/ik/CCDSolver.hpp"
 
 using namespace kine;
 
-struct MyUI: imgui_context {
+struct MyUI: ImguiContext {
 
-    bool mouseHover = false;
     bool jointMode = true;
     bool posMode = false;
     bool enableController = false;
@@ -26,7 +25,7 @@ struct MyUI: imgui_context {
     std::vector<float> values;
 
     explicit MyUI(const Canvas& canvas, Kine& kine)
-        : imgui_context(canvas.window_ptr()),
+        : ImguiContext(canvas.windowPtr()),
           limits(kine.limits()),
           values(kine.meanAngles()) {
 
@@ -61,53 +60,90 @@ struct MyUI: imgui_context {
 
         ImGui::Checkbox("controller", &enableController);
 
-        mouseHover = ImGui::IsWindowHovered();
         ImGui::End();
     }
 };
 #endif
 
+auto createGrid() {
+
+    unsigned int size = 30;
+    auto material = ShadowMaterial::create();
+    auto plane = Mesh::create(PlaneGeometry::create(size, size), material);
+    plane->rotation.x = -math::PI/2;
+    plane->receiveShadow = true;
+
+    auto grid = GridHelper::create(size, size, Color::yellowgreen);
+    grid->rotation.x = math::PI/2;
+    plane->add(grid);
+
+    return plane;
+}
+
 int main() {
 
     Canvas canvas{"Crane3R", {{"size", WindowSize{1280, 720}}, {"antialiasing", 8}}};
-    GLRenderer renderer{canvas};
+    GLRenderer renderer{canvas.size()};
+    renderer.shadowMap().enabled = true;
     renderer.setClearColor(Color::aliceblue);
 
-    auto camera = PerspectiveCamera::create(60, canvas.getAspect(), 0.01, 100);
+    auto camera = PerspectiveCamera::create(60, canvas.aspect(), 0.01, 100);
     camera->position.set(-15, 8, 15);
 
-    OrbitControls controls(camera, canvas);
+    OrbitControls controls(*camera, canvas);
 
     auto scene = Scene::create();
 
-    auto grid = GridHelper::create(20, 10, Color::yellowgreen);
+    auto grid = createGrid();
     scene->add(grid);
 
     auto endEffectorHelper = AxesHelper::create(1);
     endEffectorHelper->visible = false;
     scene->add(endEffectorHelper);
 
-    auto light = AmbientLight::create(Color::white);
-    scene->add(light);
+    auto light1 = AmbientLight::create(Color::white);
+    auto light2 = DirectionalLight::create(Color::white);
+    light2->shadow->camera->as<OrthographicCamera>()->top = 15;
+    light2->shadow->camera->as<OrthographicCamera>()->bottom = -15;
+    light2->shadow->camera->as<OrthographicCamera>()->left = 15;
+    light2->shadow->camera->as<OrthographicCamera>()->right = -15;
+    light2->position.set(-100, 100, 50);
+    light2->castShadow = true;
+    scene->add(light1);
+    scene->add(light2);
+
+    TextRenderer textRenderer;
+    auto& handle = textRenderer.createHandle("Loading Crane3R..");
+    handle.scale = 2;
 
     utils::ThreadPool pool;
     std::shared_ptr<Crane3R> crane;
     pool.submit([&] {
         crane = Crane3R::create();
+        crane->traverseType<Mesh>([](Mesh& m){
+            m.castShadow = true;
+        });
+
         canvas.invokeLater([&, crane] {
+            handle.invalidate();
             scene->add(crane);
             endEffectorHelper->visible = true;
         });
     });
 
     canvas.onWindowResize([&](WindowSize size) {
-        camera->aspect = size.getAspect();
+        camera->aspect = size.aspect();
         camera->updateProjectionMatrix();
         renderer.setSize(size);
     });
 
-
 #ifdef HAS_IMGUI
+
+    IOCapture capture{};
+    capture.preventMouseEvent = [] {
+        return ImGui::GetIO().WantCaptureMouse;
+    };
+    canvas.setIOCapture(&capture);
 
     auto ikSolver = std::make_unique<CCDSolver>();
     Kine kine = KineBuilder()
@@ -126,14 +162,16 @@ int main() {
     scene->add(targetHelper);
 
 #endif
-    canvas.animate([&](float dt) {
-        renderer.render(scene, camera);
+    Clock clock;
+    canvas.animate([&]() {
+        float dt = clock.getDelta();
+
+        renderer.render(*scene, *camera);
 
         if (crane) {
 
 #ifdef HAS_IMGUI
             ui.render();
-            controls.enabled = !ui.mouseHover;
 
             auto endEffectorPosition = kine.calculateEndEffectorTransformation(inDegrees(crane->getValues()));
             endEffectorHelper->position.setFromMatrixPosition(endEffectorPosition);
@@ -154,7 +192,10 @@ int main() {
 #endif
 
             crane->update(dt);
+        } else {
+
+            renderer.resetState();
+            textRenderer.render();
         }
     });
-
 }

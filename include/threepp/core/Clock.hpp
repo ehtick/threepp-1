@@ -10,6 +10,11 @@ namespace threepp {
     class Clock {
 
     public:
+        bool autoStart;
+        bool running = false;
+
+        float elapsedTime = 0;
+
         explicit Clock(bool autoStart = true);
 
         void start();
