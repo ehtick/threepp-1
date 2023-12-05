@@ -63,7 +63,7 @@ struct TransformControlsGizmo: Object3D {
         gizmoMaterial->depthTest = false;
         gizmoMaterial->depthWrite = false;
         gizmoMaterial->transparent = true;
-        gizmoMaterial->side = DoubleSide;
+        gizmoMaterial->side = Side::Double;
         gizmoMaterial->fog = false;
         gizmoMaterial->toneMapped = false;
 
@@ -147,7 +147,7 @@ struct TransformControlsPlane: Mesh {
         : Mesh(PlaneGeometry::create(100000, 100000, 2, 2),
                MeshBasicMaterial::create({{"visible", false},
                                           {"wireframe", true},
-                                          {"side", DoubleSide},
+                                          {"side", Side::Double},
                                           {"transparent", true},
                                           {"opacity", 0.1f},
                                           {"toneMapped", false}})) {}
