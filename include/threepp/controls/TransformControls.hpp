@@ -9,7 +9,7 @@
 namespace threepp {
 
     class Camera;
-    class Canvas;
+    class PeripheralsEventSource;
 
     class TransformControls: public Object3D {
 
@@ -29,7 +29,7 @@ namespace threepp {
         Quaternion cameraQuaternion;
         Vector3 eye;
 
-        TransformControls(Camera& camera, Canvas& canvas);
+        TransformControls(Camera& camera, PeripheralsEventSource& canvas);
 
         ~TransformControls();
 

@@ -14,6 +14,8 @@
 
 #include "threepp/core/Raycaster.hpp"
 
+#include "threepp/input/PeripheralsEventSource.hpp"
+
 #include <cmath>
 
 using namespace threepp;
@@ -153,6 +155,7 @@ struct TransformControlsPlane: Mesh {
                                           {"toneMapped", false}})) {}
 
     void updateMatrixWorld(bool force) override {
+
     }
 };
 
@@ -180,12 +183,12 @@ struct TransformControls::Impl {
     std::shared_ptr<TransformControlsPlane> _plane;
 
     TransformControls& scope;
-    Canvas& canvas;
+    PeripheralsEventSource& canvas;
     Camera& camera;
 
     Object3D* object = nullptr;
 
-    Impl(TransformControls& scope, Camera& camera, Canvas& canvas)
+    Impl(TransformControls& scope, Camera& camera, PeripheralsEventSource& canvas)
         : scope(scope), camera(camera), canvas(canvas),
           _gizmo(std::make_shared<TransformControlsGizmo>()),
           _plane(std::make_shared<TransformControlsPlane>()) {
@@ -213,7 +216,7 @@ private:
     }
 };
 
-TransformControls::TransformControls(Camera& camera, Canvas& canvas): pimpl_(std::make_unique<Impl>(*this, camera, canvas)) {
+TransformControls::TransformControls(Camera& camera, PeripheralsEventSource& canvas): pimpl_(std::make_unique<Impl>(*this, camera, canvas)) {
 
     this->visible = false;
 
