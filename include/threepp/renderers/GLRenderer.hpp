@@ -17,6 +17,7 @@
 #include "threepp/renderers/gl/GLShadowMap.hpp"
 #include "threepp/renderers/gl/GLState.hpp"
 
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -134,7 +135,7 @@ namespace threepp {
 
         void dispose();
 
-        void render(Scene& scene, Camera& camera);
+        void render(Object3D& scene, Camera& camera);
 
         void renderBufferDirect(Camera* camera, Scene* scene, BufferGeometry* geometry, Material* material, Object3D* object, std::optional<GeometryGroup> group);
 
@@ -152,7 +153,11 @@ namespace threepp {
 
         void resetState();
 
+        void invokeLater(const std::function<void()>& task, float delay = 0);
+
         [[nodiscard]] const gl::GLInfo& info() const;
+
+        [[nodiscard]] std::optional<unsigned int> getGlTextureId(Texture& texture) const;
 
         ~GLRenderer();
 

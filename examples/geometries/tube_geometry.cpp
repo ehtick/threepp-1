@@ -56,9 +56,14 @@ int main() {
         renderer.setSize(size);
     });
 
+
     Clock clock;
+    const auto count = geometry->getIndex()->count();
     canvas.animate([&]() {
         mesh->rotation.y += 1 * clock.getDelta();
+
+        auto map = math::mapLinear(std::sin(clock.elapsedTime), -1, 1, 0, static_cast<float>(count));
+        geometry->setDrawRange(0, static_cast<int>(map));
 
         renderer.render(*scene, *camera);
     });

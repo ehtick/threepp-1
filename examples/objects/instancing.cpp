@@ -29,6 +29,10 @@ namespace {
                 }
             }
         }
+        mesh.instanceMatrix()->needsUpdate();
+        mesh.instanceColor()->needsUpdate();
+
+        mesh.computeBoundingSphere();
     }
 
 }// namespace
@@ -36,14 +40,16 @@ namespace {
 int main() {
 
     int amount = 10;
+    const int maxAmount = 25;
 
     Canvas canvas("Instancing", {{"aa", 4}, {"vsync", false}});
     GLRenderer renderer(canvas.size());
+    renderer.autoClear = false;
     renderer.setClearColor(Color::aliceblue);
 
     auto scene = Scene::create();
     auto camera = PerspectiveCamera::create(60, canvas.aspect(), 0.1f, 10000);
-    camera->position.set(float(amount), float(amount), float(amount));
+    camera->position.set(float(maxAmount), float(maxAmount), float(maxAmount));
 
     OrbitControls controls{*camera, canvas};
 
@@ -53,42 +59,26 @@ int main() {
 
     auto material = MeshPhongMaterial::create();
     auto geometry = IcosahedronGeometry::create(0.5f, 2);
-    auto mesh = InstancedMesh::create(geometry, material, static_cast<int>(std::pow(amount, 3)));
-
+    auto mesh = InstancedMesh::create(geometry, material, static_cast<int>(std::pow(maxAmount, 3)));
+    mesh->instanceMatrix()->setUsage(DrawUsage::Dynamic);
+    mesh->setCount(static_cast<int>(std::pow(amount, 3)));
     setupInstancedMesh(*mesh, amount);
     scene->add(mesh);
-
-    canvas.onWindowResize([&](WindowSize size) {
-        camera->aspect = size.aspect();
-        camera->updateProjectionMatrix();
-        renderer.setSize(size);
-    });
-
-    Vector2 mouse{-Infinity<float>, -Infinity<float>};
-    MouseMoveListener l([&](auto& pos) {
-        auto size = canvas.size();
-        mouse.x = (pos.x / static_cast<float>(size.width)) * 2 - 1;
-        mouse.y = -(pos.y / static_cast<float>(size.height)) * 2 + 1;
-    });
-    canvas.addMouseListener(&l);
 
     std::unordered_map<int, bool> colorMap;
 
 #ifdef HAS_IMGUI
     ImguiFunctionalContext ui(canvas.windowPtr(), [&] {
         float width = 230;
-        ImGui::SetNextWindowPos({float(canvas.size().width)-width, 0}, 0, {0, 0});
+        ImGui::SetNextWindowPos({float(canvas.size().width) - width, 0}, 0, {0, 0});
         ImGui::SetNextWindowSize({width, 0}, 0);
 
         ImGui::Begin("Settings");
-        ImGui::SliderInt("Amount", &amount, 2, 25);
+        ImGui::SliderInt("Amount", &amount, 2, maxAmount);
         if (ImGui::IsItemEdited()) {
             colorMap.clear();
-            mesh->removeFromParent();
-            mesh = InstancedMesh::create(geometry, material, static_cast<int>(std::pow(amount, 3)));
+            mesh->setCount(static_cast<int>(std::pow(amount, 3)));
             setupInstancedMesh(*mesh, amount);
-            scene->add(mesh);
-            camera->position.set(float(amount), float(amount), float(amount));
         }
 
         ImGui::End();
@@ -101,12 +91,38 @@ int main() {
     canvas.setIOCapture(&capture);
 #endif
 
-    TextRenderer textRenderer;
-    auto& handle = textRenderer.createHandle();
+    HUD hud(canvas.size());
+    FontLoader fontLoader;
+    const auto font = *fontLoader.load("data/fonts/helvetiker_regular.typeface.json");
+
+    TextGeometry::Options opts(font, 20, 2);
+    auto handle = Text2D(opts);
+    handle.setColor(Color::black);
+    hud.add(handle, HUD::Options()
+                            .setNormalizedPosition({0, 1})
+                            .setVerticalAlignment(HUD::VerticalAlignment::TOP));
+
+    canvas.onWindowResize([&](WindowSize size) {
+        camera->aspect = size.aspect();
+        camera->updateProjectionMatrix();
+        renderer.setSize(size);
+
+        hud.setSize(size);
+    });
+
+    Vector2 mouse{-Infinity<float>, -Infinity<float>};
+    MouseMoveListener l([&](auto& pos) {
+        auto size = canvas.size();
+        mouse.x = (pos.x / static_cast<float>(size.width)) * 2 - 1;
+        mouse.y = -(pos.y / static_cast<float>(size.height)) * 2 + 1;
+    });
+    canvas.addMouseListener(l);
+
 
     Clock clock;
     FPSCounter counter;
     Raycaster raycaster;
+    long long it{0};
     canvas.animate([&]() {
         raycaster.setFromCamera(mouse, *camera);
         auto intersects = raycaster.intersectObject(*mesh);
@@ -115,17 +131,21 @@ int main() {
             auto instanceId = intersects.front().instanceId;
             if (instanceId && !colorMap[*instanceId]) {
                 mesh->setColorAt(*instanceId, Color().randomize());
-                mesh->instanceColor->needsUpdate();
+                mesh->instanceColor()->needsUpdate();
                 colorMap[*instanceId] = true;
             }
         }
 
         counter.update(clock.getElapsedTime());
-        handle.setText("FPS: " + std::to_string(counter.fps));
+        if (it++ % 60 == 0) {
+            handle.setText("FPS: " + std::to_string(counter.fps));
+            hud.needsUpdate(handle);
+        }
 
+        renderer.clear();
         renderer.render(*scene, *camera);
-        renderer.resetState();
-        textRenderer.render();
+        hud.apply(renderer);
+
 
 #ifdef HAS_IMGUI
         ui.render();

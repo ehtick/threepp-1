@@ -7,7 +7,11 @@
 
 #include "threepp/core/InstancedBufferGeometry.hpp"
 
+#ifndef EMSCRIPTEN
 #include <glad/glad.h>
+#else
+#include <GL/glew.h>
+#endif
 
 #include <unordered_map>
 
@@ -187,6 +191,14 @@ struct GLGeometries::Impl {
         }
 
         return wireframeAttributes_.at(geometry).get();
+    }
+
+    ~Impl() {
+
+        auto copy = geometries_;
+        for (auto [geom, _] : copy) {
+            geom->dispose();
+        }
     }
 };
 

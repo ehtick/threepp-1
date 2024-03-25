@@ -202,16 +202,9 @@ void Object3D::lookAt(float x, float y, float z) {
 
 void Object3D::add(const std::shared_ptr<Object3D>& object) {
 
-    if (object->parent) {
-
-        object->parent->remove(*object);
-    }
-
-    object->parent = this;
     this->children_.emplace_back(object);
-    this->children.emplace_back(object.get());
+    add(*object);
 
-    object->dispatchEvent("added");
 }
 
 void Object3D::add(Object3D& object) {
@@ -330,9 +323,10 @@ void Object3D::traverse(const std::function<void(Object3D&)>& callback) {
 
     callback(*this);
 
-    for (auto& i : children) {
+    auto _childrenCopy = children_; // keep a copy because callback may delete children
+    for (auto& c : children) {
 
-        i->traverse(callback);
+        c->traverse(callback);
     }
 }
 
@@ -342,9 +336,11 @@ void Object3D::traverseVisible(const std::function<void(Object3D&)>& callback) {
 
     callback(*this);
 
-    for (auto& i : children) {
+    auto _childrenCopy = children_; // keep a copy because callback may delete children
 
-        i->traverseVisible(callback);
+    for (auto& c : children) {
+
+        c->traverseVisible(callback);
     }
 }
 

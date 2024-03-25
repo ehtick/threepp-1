@@ -1,7 +1,7 @@
-#include "threepp/geometries/EdgesGeometry.hpp"
-#include "threepp/geometries/TextGeometry.hpp"
+
 #include "threepp/lights/LightShadow.hpp"
 #include "threepp/loaders/FontLoader.hpp"
+#include "threepp/objects/Text.hpp"
 #include "threepp/threepp.hpp"
 
 #ifdef HAS_IMGUI
@@ -33,7 +33,7 @@ namespace {
             lastSelectedIndex = selectedIndex;
 
             ImGui::SetNextWindowPos({}, 0, {});
-            ImGui::SetNextWindowSize({250, 0}, 0);
+            ImGui::SetNextWindowSize({270, 0}, 0);
 
             ImGui::Begin("Font");
 
@@ -60,15 +60,6 @@ namespace {
 
 #endif
 
-    auto createTextGeometry(const Font& font, const std::string& text, int size = 10) {
-        TextGeometry::Options opts(font, size);
-        opts.height = 1;
-        auto geometry = TextGeometry::create(text, opts);
-        geometry->center();
-
-        return geometry;
-    }
-
     auto createPlane() {
 
         auto planeMaterial = MeshPhongMaterial::create();
@@ -84,7 +75,7 @@ namespace {
     auto createAndAddLights(Scene& scene) {
 
         auto light = DirectionalLight::create();
-        light->position.set(10, 5, 10);
+        light->position.set(15, 5, 15);
         light->lookAt(Vector3::ZEROS());
         light->castShadow = true;
         auto shadowCamera = light->shadow->camera->as<OrthographicCamera>();
@@ -122,16 +113,26 @@ int main() {
     FontLoader loader;
     auto font = loader.load(fontPath / "optimer_bold.typeface.json");
 
-    std::shared_ptr<Mesh> textMesh;
+    float textSize = 10;
+    std::shared_ptr<Text3D> textMesh3d;
+    std::shared_ptr<Text2D> textMesh2d;
+
     if (font) {
-        auto material = MeshPhongMaterial::create();
+        const auto material = MeshPhongMaterial::create();
+        material->side = Side::Double;
         material->color = Color::orange;
 
-        auto geometry = createTextGeometry(*font, displayText, 10);
+        textMesh3d = Text3D::create(ExtrudeTextGeometry::Options(*font, textSize, 1), displayText, material);
+        textMesh3d->castShadow = true;
 
-        textMesh = Mesh::create(geometry, material);
-        textMesh->castShadow = true;
-        scene->add(textMesh);
+        textMesh2d = Text2D::create(TextGeometry::Options(*font, textSize), displayText, material);
+        textMesh2d->position.z = 2;
+
+        textMesh3d->geometry()->center();
+        textMesh2d->geometry()->center();
+
+        scene->add(textMesh3d);
+        scene->add(textMesh2d);
     }
 
     scene->add(createPlane());
@@ -155,8 +156,11 @@ int main() {
         if (ui.newSelection()) {
             font = loader.load(fontPath / std::string(ui.selected() + ".typeface.json"));
             if (font) {
-                auto geometry = createTextGeometry(*font, displayText);
-                textMesh->setGeometry(geometry);
+                textMesh3d->setText(displayText, ExtrudeTextGeometry::Options(*font, textSize, 1));
+                textMesh2d->setText(displayText, TextGeometry::Options(*font, textSize));
+
+                textMesh3d->geometry()->center();
+                textMesh2d->geometry()->center();
             }
         }
 #endif

@@ -1,18 +1,21 @@
 
 #include "Crane3R.hpp"
 
+#include "kine/Kine.hpp"
 #include "threepp/threepp.hpp"
-#include "threepp/utils/ThreadPool.hpp"
+#include "utility/Angle.hpp"
+
+#ifndef EMSCRIPTEN
+#include <future>
+#endif
 
 using namespace threepp;
+using namespace kine;
 
 #ifdef HAS_IMGUI
-#include "threepp/extras/imgui/ImguiContext.hpp"
 
-#include "kine/Kine.hpp"
 #include "kine/ik/CCDSolver.hpp"
-
-using namespace kine;
+#include "threepp/extras/imgui/ImguiContext.hpp"
 
 struct MyUI: ImguiContext {
 
@@ -70,11 +73,11 @@ auto createGrid() {
     unsigned int size = 30;
     auto material = ShadowMaterial::create();
     auto plane = Mesh::create(PlaneGeometry::create(size, size), material);
-    plane->rotation.x = -math::PI/2;
+    plane->rotation.x = -math::PI / 2;
     plane->receiveShadow = true;
 
     auto grid = GridHelper::create(size, size, Color::yellowgreen);
-    grid->rotation.x = math::PI/2;
+    grid->rotation.x = math::PI / 2;
     plane->add(grid);
 
     return plane;
@@ -84,6 +87,7 @@ int main() {
 
     Canvas canvas{"Crane3R", {{"size", WindowSize{1280, 720}}, {"antialiasing", 8}}};
     GLRenderer renderer{canvas.size()};
+    renderer.autoClear = false;
     renderer.shadowMap().enabled = true;
     renderer.setClearColor(Color::aliceblue);
 
@@ -112,30 +116,63 @@ int main() {
     scene->add(light1);
     scene->add(light2);
 
-    TextRenderer textRenderer;
-    auto& handle = textRenderer.createHandle("Loading Crane3R..");
-    handle.scale = 2;
+    HUD hud(canvas.size());
+    FontLoader fontLoader;
+    const auto font = *fontLoader.load("data/fonts/helvetiker_regular.typeface.json");
 
-    utils::ThreadPool pool;
+    TextGeometry::Options opts(font, 40, 2);
+    auto handle = Text2D(opts, "Loading Crane3R..");
+    handle.setColor(Color::black);
+    hud.add(handle, HUD::Options()
+                            .setNormalizedPosition({0.5, 0.5})
+                            .setHorizontalAlignment(HUD::HorizontalAlignment::CENTER)
+                            .setVerticalAlignment(HUD::VerticalAlignment::CENTER));
+
+    Kine kine = KineBuilder()
+                        .addRevoluteJoint(Vector3::Y(), {-90.f, 90.f})
+                        .addLink(Vector3::Y() * 4.2)
+                        .addRevoluteJoint(Vector3::X(), {-80.f, 0.f})
+                        .addLink(Vector3::Z() * 7)
+                        .addRevoluteJoint(Vector3::X(), {40.f, 140.f})
+                        .addLink(Vector3::Z() * 5.2)
+                        .build();
+
+
+#ifndef EMSCRIPTEN
     std::shared_ptr<Crane3R> crane;
-    pool.submit([&] {
+    auto future = std::async([&] {
         crane = Crane3R::create();
-        crane->traverseType<Mesh>([](Mesh& m){
+        crane->setTargetValues(asAngles(kine.meanAngles(), Angle::Repr::DEG));
+        crane->traverseType<Mesh>([](Mesh& m) {
             m.castShadow = true;
         });
 
-        canvas.invokeLater([&, crane] {
-            handle.invalidate();
+        renderer.invokeLater([&, crane] {
+            hud.remove(handle);
             scene->add(crane);
             endEffectorHelper->visible = true;
         });
     });
+#else
+    auto crane = Crane3R::create();
+    crane->setTargetValues(asAngles(kine.meanAngles(), Angle::Repr::DEG));
+    crane->traverseType<Mesh>([](Mesh& m) {
+        m.castShadow = true;
+    });
+
+    hud.remove(handle);
+    scene->add(crane);
+    endEffectorHelper->visible = true;
+#endif
 
     canvas.onWindowResize([&](WindowSize size) {
         camera->aspect = size.aspect();
         camera->updateProjectionMatrix();
         renderer.setSize(size);
+
+        hud.setSize(size);
     });
+
 
 #ifdef HAS_IMGUI
 
@@ -146,14 +183,6 @@ int main() {
     canvas.setIOCapture(&capture);
 
     auto ikSolver = std::make_unique<CCDSolver>();
-    Kine kine = KineBuilder()
-                        .addRevoluteJoint(Vector3::Y(), {-90.f, 90.f})
-                        .addLink(Vector3::Y() * 4.2)
-                        .addRevoluteJoint(Vector3::X(), {-80.f, 0.f})
-                        .addLink(Vector3::Z() * 7)
-                        .addRevoluteJoint(Vector3::X(), {40.f, 140.f})
-                        .addLink(Vector3::Z() * 5.2)
-                        .build();
 
     MyUI ui(canvas, kine);
 
@@ -162,14 +191,15 @@ int main() {
     scene->add(targetHelper);
 
 #endif
+
     Clock clock;
     canvas.animate([&]() {
         float dt = clock.getDelta();
 
+        renderer.clear();
         renderer.render(*scene, *camera);
 
         if (crane) {
-
 #ifdef HAS_IMGUI
             ui.render();
 
@@ -192,10 +222,14 @@ int main() {
 #endif
 
             crane->update(dt);
+
         } else {
 
-            renderer.resetState();
-            textRenderer.render();
+            hud.apply(renderer);
         }
     });
+
+#ifndef EMSCRIPTEN
+    future.get();
+#endif
 }
