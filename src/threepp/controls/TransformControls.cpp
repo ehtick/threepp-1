@@ -17,6 +17,7 @@
 #include "threepp/input/PeripheralsEventSource.hpp"
 
 #include <cmath>
+#include <iostream>
 
 using namespace threepp;
 
@@ -27,6 +28,7 @@ namespace {
     Vector3 _tmpVector;
     Vector2 _tempVector2;
     Quaternion _tempQuaternion;
+
 
     std::shared_ptr<BufferGeometry> CircleGeometry(float radius, int arc) {
 
@@ -188,32 +190,145 @@ struct TransformControls::Impl {
 
     Object3D* object = nullptr;
 
+    Vector3 worldPosition;
+    Quaternion worldQuaternion;
+    Vector3 cameraPosition;
+    Quaternion cameraQuaternion;
+    Vector3 eye;
+
+
+//    template <class T>
+//    struct Property {
+//
+//        Property(Impl& scope, const std::string& propName, T defaultValue)
+//            : scope(scope), defaultValue(defaultValue), propName(propName) {}
+//
+//        operator T() const {
+//
+//            return propValue.value_or(defaultValue);
+//        }
+//
+//        void operator[](T value) {
+//
+//            if (propValue != value) {
+//
+//                propValue = value;
+//            }
+//
+//        }
+//
+//    private:
+//        Impl& scope;
+//        T defaultValue;
+//        std::string propName;
+//        std::optional<T> propValue;
+//
+//    };
+
     Impl(TransformControls& scope, Camera& camera, PeripheralsEventSource& canvas)
         : scope(scope), camera(camera), canvas(canvas),
           _gizmo(std::make_shared<TransformControlsGizmo>()),
           _plane(std::make_shared<TransformControlsPlane>()) {
 
         this->camera.updateMatrixWorld();
-        this->camera.matrixWorld->decompose(scope.cameraPosition, scope.cameraQuaternion, _cameraScale);
+        this->camera.matrixWorld->decompose(this->cameraPosition, this->cameraQuaternion, this->_cameraScale);
 
-        scope.eye.copy(scope.cameraPosition).sub(scope.worldPosition).normalize();
+        this->eye.copy(this->cameraPosition).sub(this->worldPosition).normalize();
     }
 
+    static std::optional<Intersection> intersectObjectWithRay( Object3D& object, Raycaster& raycaster, bool includeInvisible ) {
 
-private:
-    void updateMatrixWorld() {
+        const auto allIntersections = raycaster.intersectObject( object, true );
 
-        if (object) {
+        for (const auto & allIntersection : allIntersections) {
 
-            object->updateMatrixWorld();
+            if ( allIntersection.object->visible || includeInvisible ) {
 
-            object->parent->matrixWorld->decompose(_parentPosition, _parentQuaternion, _parentScale);
-            object->matrixWorld->decompose(scope.worldPosition, scope.worldQuaternion, _worldScale);
+                return allIntersection;
 
-            _parentQuaternionInv.copy(_parentQuaternion).invert();
-            _worldQuaternionInv.copy(scope.worldQuaternion).invert();
+            }
+
         }
+
+        return std::nullopt;
+
     }
+
+    void pointerHover( Vector2 pointer ) {
+
+        if ( !this->object || scope.dragging ) return;
+
+        _raycaster.setFromCamera( pointer, this->camera );
+
+        const auto intersect = intersectObjectWithRay( this->_gizmo.picker[ scope.mode ], _raycaster );
+
+        if ( intersect ) {
+
+            this->axis = intersect.object.name;
+
+        } else {
+
+            this->axis = nullptr;
+
+        }
+
+    }
+
+    void pointerDown(int button, Vector2 pointer ) {
+
+        if ( !this->object || scope.dragging || button != 0 ) return;
+
+        if ( this->axis != nullptr ) {
+
+            _raycaster.setFromCamera( pointer, this->camera );
+
+            const auto planeIntersect = intersectObjectWithRay( *this->_plane, _raycaster, true );
+
+            if ( planeIntersect ) {
+
+                auto space = scope.space;
+
+                if ( scope.mode == "scale" ) {
+
+                    space = "local";
+
+                } else if ( this->axis == "E" || this->axis == "XYZE" || this->axis == "XYZ" ) {
+
+                    space = "world";
+
+                }
+
+                if ( space == "local" && scope.mode == "rotate" ) {
+
+                    const auto snap = scope.rotationSnap;
+
+                    if ( this->axis == "X" && snap ) this->object->rotation.x = std::round( this->object->rotation.x / snap ) * snap;
+                    if ( this->axis == "Y" && snap ) this->object->rotation.y = std::round( this->object->rotation.y / snap ) * snap;
+                    if ( this->axis == "Z" && snap ) this->object->rotation.z = std::round( this->object->rotation.z / snap ) * snap;
+
+                }
+
+                this->object->updateMatrixWorld();
+                this->object->parent->updateMatrixWorld();
+
+                this->_positionStart.copy( this->object->position );
+                this->_quaternionStart.copy( this->object->quaternion );
+                this->_scaleStart.copy( this->object->scale );
+
+                this->object->matrixWorld->decompose( this->worldPositionStart, this->worldQuaternionStart, this._worldScaleStart );
+
+                this->pointStart.copy( planeIntersect.point ).sub( this.worldPositionStart );
+
+            }
+
+            scope.dragging = true;
+            _mouseDownEvent.mode = this.mode;
+            scope.dispatchEvent( _mouseDownEvent );
+
+        }
+
+    }
+
 };
 
 TransformControls::TransformControls(Camera& camera, PeripheralsEventSource& canvas): pimpl_(std::make_unique<Impl>(*this, camera, canvas)) {
@@ -224,6 +339,37 @@ TransformControls::TransformControls(Camera& camera, PeripheralsEventSource& can
     this->add(pimpl_->_plane);
 
     Object3D::updateMatrixWorld();
+}
+
+void TransformControls::updateMatrixWorld(bool force) {
+
+    if ( pimpl_->object ) {
+
+        pimpl_->object->updateMatrixWorld();
+
+        if ( !pimpl_->object->parent ) {
+
+            std::cerr << "TransformControls: The attached 3D object must be a part of the scene graph." << std::endl;
+
+        } else {
+
+            pimpl_->object->parent->matrixWorld->decompose( pimpl_->_parentPosition, pimpl_->_parentQuaternion, pimpl_->_parentScale );
+
+        }
+
+        pimpl_->object->matrixWorld->decompose( pimpl_->worldPosition, pimpl_->worldQuaternion, pimpl_->_worldScale );
+
+        pimpl_->_parentQuaternionInv.copy( pimpl_->_parentQuaternion ).invert();
+        pimpl_->_worldQuaternionInv.copy( pimpl_->worldQuaternion ).invert();
+
+    }
+
+    pimpl_->camera.updateMatrixWorld();
+    pimpl_->camera.matrixWorld->decompose( pimpl_->cameraPosition, pimpl_->cameraQuaternion, pimpl_->_cameraScale );
+
+    pimpl_->eye.copy( pimpl_->cameraPosition ).sub( pimpl_->worldPosition ).normalize();
+
+    Object3D::updateMatrixWorld(force);
 }
 
 

@@ -23,13 +23,11 @@ namespace threepp {
         bool showY = true;
         bool showZ = true;
 
-        Vector3 worldPosition;
-        Quaternion worldQuaternion;
-        Vector3 cameraPosition;
-        Quaternion cameraQuaternion;
-        Vector3 eye;
+
 
         TransformControls(Camera& camera, PeripheralsEventSource& canvas);
+
+        void updateMatrixWorld(bool force) override;
 
         ~TransformControls();
 
