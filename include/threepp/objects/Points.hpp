@@ -16,13 +16,11 @@ namespace threepp {
     public:
         Points(std::shared_ptr<BufferGeometry> geometry, std::shared_ptr<Material> material);
 
-        Points(Points&&) = delete;
-
         [[nodiscard]] std::string type() const override;
 
         BufferGeometry* geometry() override;
 
-        void setGeometry(const std::shared_ptr<BufferGeometry>& geometry);
+        void setGeometry(const std::shared_ptr<BufferGeometry>& geometry) override;
 
         std::shared_ptr<Object3D> clone(bool recursive = true) override;
 

@@ -19,15 +19,13 @@ namespace threepp {
         explicit Mesh(std::shared_ptr<BufferGeometry> geometry = nullptr, std::shared_ptr<Material> material = nullptr);
         Mesh(std::shared_ptr<BufferGeometry> geometry, std::vector<std::shared_ptr<Material>> materials);
 
-        Mesh(Mesh&& other) = delete;
-
         [[nodiscard]] std::string type() const override;
 
         BufferGeometry* geometry() override;
 
         [[nodiscard]] const BufferGeometry* geometry() const;
 
-        void setGeometry(const std::shared_ptr<BufferGeometry>& geometry);
+        void setGeometry(const std::shared_ptr<BufferGeometry>& geometry) override;
 
         void raycast(const Raycaster& raycaster, std::vector<Intersection>& intersects) override;
 

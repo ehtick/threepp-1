@@ -226,6 +226,8 @@ namespace threepp {
             return nullptr;
         }
 
+        virtual void setGeometry(const std::shared_ptr<BufferGeometry>& geometry) {}
+
         virtual Material* material() {
 
             return nullptr;

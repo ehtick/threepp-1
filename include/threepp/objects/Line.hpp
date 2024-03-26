@@ -19,13 +19,11 @@ namespace threepp {
     public:
         Line(std::shared_ptr<BufferGeometry> geometry, std::shared_ptr<Material> material);
 
-        Line(Line&&) = delete;
-
         [[nodiscard]] std::string type() const override;
 
         BufferGeometry* geometry() override;
 
-        void setGeometry(const std::shared_ptr<BufferGeometry>& geometry);
+        void setGeometry(const std::shared_ptr<BufferGeometry>& geometry) override;
 
         virtual void computeLineDistances();
 
