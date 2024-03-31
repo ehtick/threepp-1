@@ -12,10 +12,10 @@ int main() {
     renderer.shadowMap().type = threepp::ShadowMap::PFC;
 
     PerspectiveCamera camera(60, canvas.aspect());
-    camera.position.z = 25;
+    camera.position.z = 10;
 
     Scene scene;
-    scene.background = Color(0xf0f0f0);
+//    scene.background = Color(0xf0f0f0);
 
     scene.add(AmbientLight::create(0xaaaaaa));
 
