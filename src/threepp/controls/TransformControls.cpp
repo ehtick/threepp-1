@@ -32,10 +32,16 @@ namespace {
 
     Vector3 _tempVector;
     Vector3 _tempVector2;
+    Vector3 _zeroVector;
+
+    Euler _tempEuler;
 
     Quaternion _identityQuaternion;
     Quaternion _tempQuaternion;
+    Quaternion _tempQuaternion2;
+
     Matrix4 _tempMatrix;
+    Matrix4 _lookAtMatrix;
 
     std::unordered_map<std::string, Vector3> _unit{
             {"X", Vector3{1, 0, 0}},
@@ -79,40 +85,46 @@ namespace {
         return geometry;
     }
 
+    struct GizmoObject: Object3D {
 
-//    template<class T>
-//    struct Property {
-//
-//        Property(const std::string& propName, T defaultValue)
-//            : defaultValue(defaultValue), propName(propName) {}
-//
-//        operator T() const {
-//
-//            return propValue.value_or(defaultValue);
-//        }
-//
-//        void operator[](T value) {
-//
-//            if (propValue != value) {
-//
-//                propValue = value;
-//            }
-//        }
-//
-//    private:
-//        T defaultValue;
-//        std::string propName;
-//        std::optional<T> propValue;
-//    };
+        std::optional<float> _opacity;
+        std::optional<Color> _color;
+    };
+
+
+    //    template<class T>
+    //    struct Property {
+    //
+    //        Property(const std::string& propName, T defaultValue)
+    //            : defaultValue(defaultValue), propName(propName) {}
+    //
+    //        operator T() const {
+    //
+    //            return propValue.value_or(defaultValue);
+    //        }
+    //
+    //        void operator[](T value) {
+    //
+    //            if (propValue != value) {
+    //
+    //                propValue = value;
+    //            }
+    //        }
+    //
+    //    private:
+    //        T defaultValue;
+    //        std::string propName;
+    //        std::optional<T> propValue;
+    //    };
 
 
 }// namespace
 
 struct TransformControlsGizmo: Object3D {
 
-    std::unordered_map<std::string, Object3D*> gizmo;
-    std::unordered_map<std::string, Object3D*> picker;
-    std::unordered_map<std::string, Object3D*> helper;
+    std::unordered_map<std::string, GizmoObject*> gizmo;
+    std::unordered_map<std::string, GizmoObject*> picker;
+    std::unordered_map<std::string, GizmoObject*> helper;
 
     TransformControlsGizmo() {
 
@@ -221,7 +233,7 @@ struct TransformControlsGizmo: Object3D {
                 {"XY", {
                              {Mesh::create(PlaneGeometry::create(0.295, 0.295), matYellowTransparent->clone()), Vector3{0.15,0.15,0}, std::nullopt, std::nullopt, std::nullopt},
                              {Line::create(lineGeometry, matLineYellow), Vector3{0.18, 0.3, 0}, std::nullopt, Vector3{0.125, 1, 1}, std::nullopt},
-                             {Line::create(lineGeometry, matLineYellow), Vector3{0.18, 0.3, 0}, Euler{0, 0, math::PI/2}, Vector3{0.125, 1, 1}, std::nullopt}
+                             {Line::create(lineGeometry, matLineYellow), Vector3{0.3, 0.18, 0}, Euler{0, 0, math::PI/2}, Vector3{0.125, 1, 1}, std::nullopt}
                         }},
                 {"YZ", {
                             {Mesh::create(PlaneGeometry::create(0.295, 0.295), matCyanTransparent->clone()), Vector3{0, 0.15,0.15}, Euler{0, math::PI/2, 0}, std::nullopt, std::nullopt},
@@ -412,26 +424,56 @@ struct TransformControlsGizmo: Object3D {
 
         // clang-format on
 
-        auto translate = setupGizmo(gizmoTranslate);
-        this->gizmo["translate"] = translate.get();
-        add(translate);
+        {
+            auto translate = setupGizmo(gizmoTranslate);
+            this->gizmo["translate"] = translate.get();
+            add(translate);
 
-        auto rotate = setupGizmo(gizmoRotate);
-        this->gizmo["rotate"] = rotate.get();
-        add(rotate);
+            auto rotate = setupGizmo(gizmoRotate);
+            this->gizmo["rotate"] = rotate.get();
+            add(rotate);
 
-        auto scale = setupGizmo(gizmoScale);
-        this->gizmo["scale"] = scale.get();
-        add(scale);
+            auto scale = setupGizmo(gizmoScale);
+            this->gizmo["scale"] = scale.get();
+            add(scale);
+        }
 
-//        this->picker["translate"]->visible = false;
-//        this->picker["rotate"]->visible = false;
-//        this->picker["scale"]->visible = false;
+        {
+            auto translate = setupGizmo(pickerTranslate);
+            this->picker["translate"] = translate.get();
+            add(translate);
+
+            auto rotate = setupGizmo(pickerRotate);
+            this->picker["rotate"] = rotate.get();
+            add(rotate);
+
+            auto scale = setupGizmo(pickerScale);
+            this->picker["scale"] = scale.get();
+            add(scale);
+        }
+
+        {
+            auto translate = setupGizmo(helperTranslate);
+            this->helper["translate"] = translate.get();
+            add(translate);
+
+            auto rotate = setupGizmo(helperRotate);
+            this->helper["rotate"] = rotate.get();
+            add(rotate);
+
+            auto scale = setupGizmo(helperScale);
+            this->helper["scale"] = scale.get();
+            add(scale);
+        }
+
+        this->picker["translate"]->visible = false;
+        this->picker["rotate"]->visible = false;
+        this->picker["scale"]->visible = false;
     }
 
-    std::shared_ptr<Object3D> setupGizmo(const GizmoMap& gizmoMap) {
+    std::shared_ptr<GizmoObject> setupGizmo(const GizmoMap& gizmoMap) {
 
-        const auto gizmo = Object3D::create();
+        const auto gizmo = std::make_shared<GizmoObject>();
 
         for (const auto& [name, value] : gizmoMap) {
 
@@ -479,6 +521,356 @@ struct TransformControlsGizmo: Object3D {
 
         return gizmo;
     }
+
+    void updateMatrixWorld(bool force) override {
+
+        const auto space = (this->mode == "scale") ? "local" : this->space;// scale always oriented to local rotation
+
+        const auto quaternion = (space == "local") ? this->worldQuaternion : _identityQuaternion;
+
+        // Show only gizmos for current transform mode
+
+        this->gizmo["translate"]->visible = this->mode == "translate";
+        this->gizmo["rotate"]->visible = this->mode == "rotate";
+        this->gizmo["scale"]->visible = this->mode == "scale";
+
+        this->helper["translate"]->visible = this->mode == "translate";
+        this->helper["rotate"]->visible = this->mode == "rotate";
+        this->helper["scale"]->visible = this->mode == "scale";
+
+
+        std::vector<GizmoObject*> handles;
+        handles = handles.concat(this->picker[this->mode].children);
+        handles = handles.concat(this->gizmo[this->mode].children);
+        handles = handles.concat(this->helper[this->mode].children);
+
+        for (unsigned i = 0; i < handles.size(); i++) {
+
+            const auto handle = handles[i];
+
+            // hide aligned to camera
+
+            handle->visible = true;
+            handle->rotation.set(0, 0, 0);
+            handle->position.copy(this->worldPosition);
+
+            float factor;
+
+            if (this->camera.isOrthographicCamera) {
+
+                factor = (this->camera.top - this->camera.bottom) / this->camera.zoom;
+
+            } else {
+
+                factor = this->worldPosition.distanceTo(this->cameraPosition) * std::min(1.9 * std::tan(math::PI * this->camera.fov / 360) / this->camera.zoom, 7);
+            }
+
+            handle->scale.set(1, 1, 1).multiplyScalar(factor * this->size / 7);
+
+            // TODO: simplify helpers and consider decoupling from gizmo
+
+            if (std::any_cast<std::string>(handle->userData["tag"]) == "helper") {
+
+                handle->visible = false;
+
+                if (handle->name == "AXIS") {
+
+                    handle->position.copy(this->worldPositionStart);
+                    handle->visible = !!this->axis;
+
+                    if (this->axis == "X") {
+
+                        _tempQuaternion.setFromEuler(_tempEuler.set(0, 0, 0));
+                        handle->quaternion.copy(quaternion).multiply(_tempQuaternion);
+
+                        if (std::abs(_alignVector.copy(_unitX).applyQuaternion(quaternion).dot(this->eye)) > 0.9) {
+
+                            handle->visible = false;
+                        }
+                    }
+
+                    if (this->axis == "Y") {
+
+                        _tempQuaternion.setFromEuler(_tempEuler.set(0, 0, math::PI / 2));
+                        handle->quaternion.copy(quaternion).multiply(_tempQuaternion);
+
+                        if (std::abs(_alignVector.copy(_unitY).applyQuaternion(quaternion).dot(this->eye)) > 0.9) {
+
+                            handle->visible = false;
+                        }
+                    }
+
+                    if (this->axis == "Z") {
+
+                        _tempQuaternion.setFromEuler(_tempEuler.set(0, math::PI / 2, 0));
+                        handle->quaternion.copy(quaternion).multiply(_tempQuaternion);
+
+                        if (std::abs(_alignVector.copy(_unitZ).applyQuaternion(quaternion).dot(this->eye)) > 0.9) {
+
+                            handle->visible = false;
+                        }
+                    }
+
+                    if (this->axis == "XYZE") {
+
+                        _tempQuaternion.setFromEuler(_tempEuler.set(0, math::PI / 2, 0));
+                        _alignVector.copy(this->rotationAxis);
+                        handle->quaternion.setFromRotationMatrix(_lookAtMatrix.lookAt(_zeroVector, _alignVector, _unitY));
+                        handle->quaternion.multiply(_tempQuaternion);
+                        handle->visible = this->dragging;
+                    }
+
+                    if (this->axis == "E") {
+
+                        handle->visible = false;
+                    }
+
+
+                } else if (handle->name == "START") {
+
+                    handle->position.copy(this->worldPositionStart);
+                    handle->visible = this->dragging;
+
+                } else if (handle->name == "END") {
+
+                    handle->position.copy(this->worldPosition);
+                    handle->visible = this->dragging;
+
+                } else if (handle->name == "DELTA") {
+
+                    handle->position.copy(this->worldPositionStart);
+                    handle->quaternion.copy(this->worldQuaternionStart);
+                    _tempVector.set(1e-10, 1e-10, 1e-10).add(this->worldPositionStart).sub(this->worldPosition).multiplyScalar(-1);
+                    _tempVector.applyQuaternion(this->worldQuaternionStart.clone().invert());
+                    handle->scale.copy(_tempVector);
+                    handle->visible = this->dragging;
+
+                } else {
+
+                    handle->quaternion.copy(quaternion);
+
+                    if (this->dragging) {
+
+                        handle->position.copy(this->worldPositionStart);
+
+                    } else {
+
+                        handle->position.copy(this->worldPosition);
+                    }
+
+                    if (this->axis) {
+
+                        handle->visible = this->axis.search(handle->name) != std::string::npos;
+                    }
+                }
+
+                // If updating helper, skip rest of the loop
+                continue;
+            }
+
+            // Align handles to current local or world rotation
+
+            handle->quaternion.copy(quaternion);
+
+            if (this->mode == "translate" || this->mode == "scale") {
+
+                // Hide translate and scale axis facing the camera
+
+                const auto AXIS_HIDE_TRESHOLD = 0.99;
+                const auto PLANE_HIDE_TRESHOLD = 0.2;
+                const auto AXIS_FLIP_TRESHOLD = 0.0;
+
+                if (handle->name == "X" || handle->name == "XYZX") {
+
+                    if (std::abs(_alignVector.copy(_unitX).applyQuaternion(quaternion).dot(this->eye)) > AXIS_HIDE_TRESHOLD) {
+
+                        handle->scale.set(1e-10, 1e-10, 1e-10);
+                        handle->visible = false;
+                    }
+                }
+
+                if (handle->name == "Y" || handle->name == "XYZY") {
+
+                    if (std::abs(_alignVector.copy(_unitY).applyQuaternion(quaternion).dot(this->eye)) > AXIS_HIDE_TRESHOLD) {
+
+                        handle->scale.set(1e-10, 1e-10, 1e-10);
+                        handle->visible = false;
+                    }
+                }
+
+                if (handle->name == "Z" || handle->name == "XYZZ") {
+
+                    if (std::abs(_alignVector.copy(_unitZ).applyQuaternion(quaternion).dot(this->eye)) > AXIS_HIDE_TRESHOLD) {
+
+                        handle->scale.set(1e-10, 1e-10, 1e-10);
+                        handle->visible = false;
+                    }
+                }
+
+                if (handle->name == "XY") {
+
+                    if (std::abs(_alignVector.copy(_unitZ).applyQuaternion(quaternion).dot(this->eye)) < PLANE_HIDE_TRESHOLD) {
+
+                        handle->scale.set(1e-10, 1e-10, 1e-10);
+                        handle->visible = false;
+                    }
+                }
+
+                if (handle->name == "YZ") {
+
+                    if (std::abs(_alignVector.copy(_unitX).applyQuaternion(quaternion).dot(this->eye)) < PLANE_HIDE_TRESHOLD) {
+
+                        handle->scale.set(1e-10, 1e-10, 1e-10);
+                        handle->visible = false;
+                    }
+                }
+
+                if (handle->name == "XZ") {
+
+                    if (std::abs(_alignVector.copy(_unitY).applyQuaternion(quaternion).dot(this->eye)) < PLANE_HIDE_TRESHOLD) {
+
+                        handle->scale.set(1e-10, 1e-10, 1e-10);
+                        handle->visible = false;
+                    }
+                }
+
+                // Flip translate and scale axis ocluded behind another axis
+
+                if (handle->name.find('X') != std::string::npos) {
+
+                    if (_alignVector.copy(_unitX).applyQuaternion(quaternion).dot(this->eye) < AXIS_FLIP_TRESHOLD) {
+
+                        if (std::any_cast<std::string>(handle->userData["tag"]) == "fwd") {
+
+                            handle->visible = false;
+
+                        } else {
+
+                            handle->scale.x *= -1;
+                        }
+
+                    } else if (std::any_cast<std::string>(handle->userData["tag"]) == "bwd") {
+
+                        handle->visible = false;
+                    }
+                }
+
+                if (handle->name.find('Y') != std::string::npos) {
+
+                    if (_alignVector.copy(_unitY).applyQuaternion(quaternion).dot(this->eye) < AXIS_FLIP_TRESHOLD) {
+
+                        if (std::any_cast<std::string>(handle->userData["tag"]) == "fwd") {
+
+                            handle->visible = false;
+
+                        } else {
+
+                            handle->scale.y *= -1;
+                        }
+
+                    } else if (std::any_cast<std::string>(handle->userData["tag"]) == "bwd") {
+
+                        handle->visible = false;
+                    }
+                }
+
+                if (handle->name.find('Z') != std::string::npos) {
+
+                    if (_alignVector.copy(_unitZ).applyQuaternion(quaternion).dot(this->eye) < AXIS_FLIP_TRESHOLD) {
+
+                        if (std::any_cast<std::string>(handle->userData["tag"]) == "fwd") {
+
+                            handle->visible = false;
+
+                        } else {
+
+                            handle->scale.z *= -1;
+                        }
+
+                    } else if (std::any_cast<std::string>(handle->userData["tag"]) == "bwd") {
+
+                        handle->visible = false;
+                    }
+                }
+
+            } else if (this->mode == "rotate") {
+
+                // Align handles to current local or world rotation
+
+                _tempQuaternion2.copy(quaternion);
+                _alignVector.copy(this->eye).applyQuaternion(_tempQuaternion.copy(quaternion).invert());
+
+                if (handle->name.find('E') != std::string::npos) {
+
+                    handle->quaternion.setFromRotationMatrix(_lookAtMatrix.lookAt(this->eye, _zeroVector, _unitY));
+                }
+
+                if (handle->name == "X") {
+
+                    _tempQuaternion.setFromAxisAngle(_unitX, std::atan2(-_alignVector.y, _alignVector.z));
+                    _tempQuaternion.multiplyQuaternions(_tempQuaternion2, _tempQuaternion);
+                    handle->quaternion.copy(_tempQuaternion);
+                }
+
+                if (handle->name == "Y") {
+
+                    _tempQuaternion.setFromAxisAngle(_unitY, std::atan2(_alignVector.x, _alignVector.z));
+                    _tempQuaternion.multiplyQuaternions(_tempQuaternion2, _tempQuaternion);
+                    handle->quaternion.copy(_tempQuaternion);
+                }
+
+                if (handle->name == "Z") {
+
+                    _tempQuaternion.setFromAxisAngle(_unitZ, std::atan2(_alignVector.y, _alignVector.x));
+                    _tempQuaternion.multiplyQuaternions(_tempQuaternion2, _tempQuaternion);
+                    handle->quaternion.copy(_tempQuaternion);
+                }
+            }
+
+            // Hide disabled axes
+            handle->visible = handle->visible && (handle->name.find('X') == std::string::npos || this->showX);
+            handle->visible = handle->visible && (handle->name.find('Y') == std::string::npos || this->showY);
+            handle->visible = handle->visible && (handle->name.find('Z') == std::string::npos || this->showZ);
+            handle->visible = handle->visible && (handle->name.find('E') == std::string::npos || (this->showX && this->showY && this->showZ));
+
+            // highlight selected axis
+
+            if (!handle->_opacity) handle->_opacity = handle->material()->opacity;
+            if (!handle->_color) handle->_color = handle->material()->as<MaterialWithColor>()->color;
+
+            handle->material()->as<MaterialWithColor>()->color.copy(*handle->_color);
+            handle->material()->opacity = *handle->_opacity;
+
+            if (!this->enabled) {
+
+                handle->material()->opacity *= 0.5;
+                handle->material()->as<MaterialWithColor>()->color.lerp(Color(1, 1, 1), 0.5);
+
+            } else if (this->axis) {
+
+                if (handle->name == this->axis) {
+
+                    handle->material()->opacity = 1.0;
+                    handle->material()->as<MaterialWithColor>()->color.lerp(Color(1, 1, 1), 0.5);
+
+                } else if (this->axis.split( '' ).some(function(a) {
+                               return handle->name == = a;
+                           })) {
+
+                    handle->material()->opacity = 1.0;
+                    handle->material()->as<MaterialWithColor>()->color.lerp(Color(1, 1, 1), 0.5);
+
+                } else {
+
+                    handle->material()->opacity *= 0.25;
+                    handle->material()->as<MaterialWithColor>()->color.lerp(Color(1, 1, 1), 0.5);
+                }
+            }
+        }
+
+
+        Object3D::updateMatrixWorld(force);
+    }
 };
 
 struct State {
@@ -497,12 +889,12 @@ struct TransformControlsPlane: Mesh {
 
     explicit TransformControlsPlane(State& state)
         : state(state), Mesh(PlaneGeometry::create(100000, 100000, 2, 2),
-               MeshBasicMaterial::create({{"visible", false},
-                                          {"wireframe", true},
-                                          {"side", Side::Double},
-                                          {"transparent", true},
-                                          {"opacity", 0.1f},
-                                          {"toneMapped", false}})) {}
+                             MeshBasicMaterial::create({{"visible", false},
+                                                        {"wireframe", true},
+                                                        {"side", Side::Double},
+                                                        {"transparent", true},
+                                                        {"opacity", 0.1f},
+                                                        {"toneMapped", false}})) {}
 
     void updateMatrixWorld(bool force) override {
 
@@ -564,19 +956,6 @@ struct TransformControlsPlane: Mesh {
     }
 };
 
-struct MyMouseListener: MouseListener {
-
-    void onMouseDown(int button, const Vector2& pos) override {
-        MouseListener::onMouseDown(button, pos);
-    }
-    void onMouseUp(int button, const Vector2& pos) override {
-        MouseListener::onMouseUp(button, pos);
-    }
-    void onMouseMove(const Vector2& pos) override {
-        MouseListener::onMouseMove(pos);
-    }
-};
-
 struct TransformControls::Impl {
 
     Vector3 _offset;
@@ -616,19 +995,74 @@ struct TransformControls::Impl {
     TransformControls& scope;
     PeripheralsEventSource& canvas;
     Camera& camera;
+    Object3D* object = nullptr;
 
-//    Vector3 worldPosition;
-//    Quaternion worldQuaternion;
     Vector3 cameraPosition;
-//    Quaternion cameraQuaternion;
-//    Vector3 eye;
 
     State state;
+
+    struct MyMouseListener: MouseListener {
+
+        Impl& scope;
+        bool moveEnabled = false;
+
+        explicit MyMouseListener(Impl& scope): scope(scope) {}
+
+        void onMouseDown(int button, const Vector2& pos) override {
+
+            if (!scope.scope.enabled) return;
+
+            button_ = button;
+            moveEnabled = true;
+
+            const auto rect = scope.canvas.size();
+
+            Vector2 _pos;
+            _pos.x = (pos.x - rect.width) / rect.width * 2 - 1;
+            _pos.y = -(pos.y - rect.height) / rect.height * 2 - 1;
+
+            //            scope.pointerHover(_pos);
+            scope.pointerDown(button, _pos);
+        }
+
+        void onMouseMove(const Vector2& pos) override {
+            if (!moveEnabled) return;
+            if (!scope.scope.enabled) return;
+
+            const auto rect = scope.canvas.size();
+
+            Vector2 _pos;
+            _pos.x = (pos.x - rect.width) / rect.width * 2 - 1;
+            _pos.y = -(pos.y - rect.height) / rect.height * 2 - 1;
+
+            scope.pointerMove(button_, _pos);
+        }
+
+        void onMouseUp(int button, const Vector2& pos) override {
+            if (!scope.scope.enabled) return;
+
+            button_ = -1;
+            moveEnabled = false;
+
+            const auto rect = scope.canvas.size();
+
+            Vector2 _pos;
+            _pos.x = (pos.x - rect.width) / rect.width * 2 - 1;
+            _pos.y = -(pos.y - rect.height) / rect.height * 2 - 1;
+
+            scope.pointerUp(button, _pos);
+        }
+
+
+    private:
+        int button_;
+    };
+
 
     MyMouseListener myMouseListener;
 
     Impl(TransformControls& scope, Camera& camera, PeripheralsEventSource& canvas)
-        : scope(scope), camera(camera), canvas(canvas),
+        : scope(scope), myMouseListener(*this), camera(camera), canvas(canvas),
           _gizmo(std::make_shared<TransformControlsGizmo>()),
           _plane(std::make_shared<TransformControlsPlane>(state)) {
 
@@ -636,7 +1070,6 @@ struct TransformControls::Impl {
         this->camera.matrixWorld->decompose(this->cameraPosition, state.cameraQuaternion, this->_cameraScale);
 
         state.eye.copy(this->cameraPosition).sub(state.worldPosition).normalize();
-
 
         canvas.addMouseListener(myMouseListener);
     }
@@ -656,27 +1089,27 @@ struct TransformControls::Impl {
         return std::nullopt;
     }
 
-    void pointerHover(Vector2 pointer) {
-
-        if (!this->scope.object || scope.dragging) return;
-
-        _raycaster.setFromCamera(pointer, this->camera);
-
-        const auto intersect = intersectObjectWithRay(*this->_gizmo->picker[scope.mode], _raycaster);
-
-        if (intersect) {
-
-            this->axis = intersect->object->name;
-
-        } else {
-
-            this->axis = nullptr;
-        }
-    }
+    //    void pointerHover(Vector2 pointer) {
+    //
+    //        if (!this->scope.object || scope.dragging) return;
+    //
+    //        _raycaster.setFromCamera(pointer, this->camera);
+    //
+    //        const auto intersect = intersectObjectWithRay(*this->_gizmo->picker[scope.mode], _raycaster);
+    //
+    //        if (intersect) {
+    //
+    //            this->axis = intersect->object->name;
+    //
+    //        } else {
+    //
+    //            this->axis = std::nullopt;
+    //        }
+    //    }
 
     void pointerDown(int button, Vector2 pointer) {
 
-        if (!this->scope.object || scope.dragging || button != 0) return;
+        if (!this->object || scope.dragging || button != 0) return;
 
         if (this->axis) {
 
@@ -706,14 +1139,14 @@ struct TransformControls::Impl {
                     //                    if (this->axis == "Z" && snap) this->object->rotation.z = std::round(this->object->rotation.z / snap) * snap;
                 }
 
-                this->scope.object->updateMatrixWorld();
-                this->scope.object->parent->updateMatrixWorld();
+                this->object->updateMatrixWorld();
+                this->object->parent->updateMatrixWorld();
 
-                this->_positionStart.copy(this->scope.object->position);
-                this->_quaternionStart.copy(this->scope.object->quaternion);
-                this->_scaleStart.copy(this->scope.object->scale);
+                this->_positionStart.copy(this->object->position);
+                this->_quaternionStart.copy(this->object->quaternion);
+                this->_scaleStart.copy(this->object->scale);
 
-                this->scope.object->matrixWorld->decompose(this->worldPositionStart, this->worldQuaternionStart, this->_worldScaleStart);
+                this->object->matrixWorld->decompose(this->worldPositionStart, this->worldQuaternionStart, this->_worldScaleStart);
 
                 this->pointStart.copy(planeIntersect->point).sub(this->worldPositionStart);
             }
@@ -728,7 +1161,7 @@ struct TransformControls::Impl {
 
         const auto axis = this->axis;
         const auto mode = this->scope.mode;
-        const auto object = this->scope.object;
+        const auto object = this->object;
         auto space = this->scope.space;
 
         if (mode == "scale") {
@@ -958,13 +1391,24 @@ struct TransformControls::Impl {
 
             _mouseUpEvent.target = &this->scope.mode;
             this->scope.dispatchEvent(_mouseUpEvent);
-
         }
 
         this->dragging = false;
         this->axis = std::nullopt;
     }
 
+    void attach(Object3D& object) {
+
+        scope.visible = true;
+        this->object = &object;
+    }
+
+    void detach() {
+
+        this->object = nullptr;
+        scope.visible = false;
+        this->axis = std::nullopt;
+    }
 };
 
 TransformControls::TransformControls(Camera& camera, PeripheralsEventSource& canvas)
@@ -975,25 +1419,25 @@ TransformControls::TransformControls(Camera& camera, PeripheralsEventSource& can
     this->add(pimpl_->_gizmo);
     this->add(pimpl_->_plane);
 
-//    Object3D::updateMatrixWorld();
+    //    Object3D::updateMatrixWorld();
 }
 
 void TransformControls::updateMatrixWorld(bool force) {
 
-    if (object) {
+    if (pimpl_->object) {
 
-        object->updateMatrixWorld();
+        pimpl_->object->updateMatrixWorld();
 
-        if (!object->parent) {
+        if (!pimpl_->object->parent) {
 
             std::cerr << "TransformControls: The attached 3D object must be a part of the scene graph." << std::endl;
 
         } else {
 
-            object->parent->matrixWorld->decompose(pimpl_->_parentPosition, pimpl_->_parentQuaternion, pimpl_->_parentScale);
+            pimpl_->object->parent->matrixWorld->decompose(pimpl_->_parentPosition, pimpl_->_parentQuaternion, pimpl_->_parentScale);
         }
 
-        object->matrixWorld->decompose(pimpl_->state.worldPosition, pimpl_->state.worldQuaternion, pimpl_->_worldScale);
+        pimpl_->object->matrixWorld->decompose(pimpl_->state.worldPosition, pimpl_->state.worldQuaternion, pimpl_->_worldScale);
 
         pimpl_->_parentQuaternionInv.copy(pimpl_->_parentQuaternion).invert();
         pimpl_->_worldQuaternionInv.copy(pimpl_->state.worldQuaternion).invert();
@@ -1007,5 +1451,18 @@ void TransformControls::updateMatrixWorld(bool force) {
     Object3D::updateMatrixWorld(force);
 }
 
+TransformControls& TransformControls::attach(Object3D& object) {
+
+    pimpl_->attach(object);
+
+    return *this;
+}
+
+TransformControls& TransformControls::detach() {
+
+    pimpl_->detach();
+
+    return *this;
+}
 
 TransformControls::~TransformControls() = default;

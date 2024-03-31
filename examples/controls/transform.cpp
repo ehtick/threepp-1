@@ -32,13 +32,17 @@ int main() {
     scene.add(light);
 
     auto material = MeshBasicMaterial::create();
+    material->transparent = true;
+    material->opacity = 0.7;
     auto object = Mesh::create(BoxGeometry::create(), material);
     scene.add(object);
 
     TransformControls controls(camera, canvas);
-    controls.object = object.get();
+    controls.attach(*object);
 
     scene.add(controls);
+
+    OrbitControls orbitControls(camera, canvas);
 
     canvas.onWindowResize([&](WindowSize size) {
         camera.aspect = size.aspect();

@@ -26,9 +26,11 @@ namespace threepp {
         std::optional<float> rotationSnap;
         std::optional<float> translationSnap;
 
-        Object3D* object = nullptr;
-
         TransformControls(Camera& camera, PeripheralsEventSource& canvas);
+
+        TransformControls& attach(Object3D& object);
+
+        TransformControls& detach();
 
         void updateMatrixWorld(bool force) override;
 
