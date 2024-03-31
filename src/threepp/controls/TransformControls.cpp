@@ -9,6 +9,8 @@
 #include "threepp/materials/MeshBasicMaterial.hpp"
 
 #include "threepp/geometries/CylinderGeometry.hpp"
+#include "threepp/geometries/SphereGeometry.hpp"
+#include "threepp/geometries/TorusGeometry.hpp"
 
 #include "threepp/geometries/BoxGeometry.hpp"
 #include "threepp/geometries/PlaneGeometry.hpp"
@@ -34,7 +36,7 @@ namespace {
 
     using GizmoMap = std::unordered_map<std::string, std::vector<std::tuple<std::shared_ptr<Object3D>, std::optional<Vector3>, std::optional<Euler>, std::optional<Vector3>, std::optional<std::string>>>>;
 
-    std::shared_ptr<BufferGeometry> CircleGeometry(float radius, int arc) {
+    std::shared_ptr<BufferGeometry> CircleGeometry(float radius, float arc) {
 
         auto geometry = BufferGeometry::create();
         std::vector<float> vertices;
@@ -147,6 +149,8 @@ struct TransformControlsGizmo: Object3D {
         const auto lineGeometry = BufferGeometry::create();
         lineGeometry->setAttribute("position", FloatBufferAttribute::create(std::vector<float>{0, 0, 0, 1, 0, 0}, 3));
 
+        // Gizmo definitions - custom hierarchy definitions for setupGizmo() function
+
         // clang-format off
         GizmoMap gizmoTranslate {
                 {"X", {
@@ -166,8 +170,199 @@ struct TransformControlsGizmo: Object3D {
                       }},
                 {"XYZ", {
                              {Mesh::create(OctahedronGeometry::create(0.1, 0), matWhiteTransparent->clone()), Vector3{0,0,0}, Euler{0,0,0}, std::nullopt, std::nullopt}
-                        }}
+                        }},
+                {"XY", {
+                             {Mesh::create(PlaneGeometry::create(0.295, 0.295), matYellowTransparent->clone()), Vector3{0.15,0.15,0}, std::nullopt, std::nullopt, std::nullopt},
+                             {Line::create(lineGeometry, matLineYellow), Vector3{0.18, 0.3, 0}, std::nullopt, Vector3{0.125, 1, 1}, std::nullopt},
+                             {Line::create(lineGeometry, matLineYellow), Vector3{0.18, 0.3, 0}, Euler{0, 0, math::PI/2}, Vector3{0.125, 1, 1}, std::nullopt}
+                        }},
+                {"YZ", {
+                            {Mesh::create(PlaneGeometry::create(0.295, 0.295), matCyanTransparent->clone()), Vector3{0, 0.15,0.15}, Euler{0, math::PI/2, 0}, std::nullopt, std::nullopt},
+                            {Line::create(lineGeometry, matLineCyan), Vector3{0, 0.18, 0.3}, std::nullopt, Vector3{0.125, 1, 1}, std::nullopt},
+                            {Line::create(lineGeometry, matLineCyan), Vector3{0, 0.3, 0.18}, Euler{0, -math::PI/2, 0}, Vector3{0.125, 1, 1}, std::nullopt}
+                       }},
+                {"XZ", {
+                            {Mesh::create(PlaneGeometry::create(0.295, 0.295), matMagentaTransparent->clone()), Vector3{0.15,0,0.15}, Euler{-math::PI/2, 0, 0}, std::nullopt, std::nullopt},
+                            {Line::create(lineGeometry, matLineMagenta), Vector3{0.18, 0, 0.3}, std::nullopt, Vector3{0.125, 1, 1}, std::nullopt},
+                            {Line::create(lineGeometry, matLineMagenta), Vector3{0.3, 0, 0.18}, Euler{0, -math::PI/2, 0}, Vector3{0.125, 1, 1}, std::nullopt}
+                       }}
         };
+
+        GizmoMap pickerTranslate {
+                {"X", {
+                            {Mesh::create(CylinderGeometry::create(0.2, 0, 1, 4, 1, false), matInvisible), Vector3{0.6, 0, 0}, Euler{0, 0, -math::PI/2}, std::nullopt, std::nullopt}
+                      }},
+                {"Y", {
+                            {Mesh::create(CylinderGeometry::create(0.2, 0, 1, 4, 1, false), matInvisible), Vector3{0, 0.6, 0}, std::nullopt, std::nullopt, std::nullopt}
+                      }},
+                {"Z", {
+                            {Mesh::create(CylinderGeometry::create(0.2, 0, 1, 4, 1, false), matInvisible), Vector3{0, 0, 0.6}, Euler{math::PI/2, 0, 0}, std::nullopt, std::nullopt}
+                      }},
+                {"XYZ", {
+                            {Mesh::create(OctahedronGeometry::create(0.2, 0), matInvisible), std::nullopt, std::nullopt, std::nullopt, std::nullopt}
+                      }},
+                {"XY", {
+                            {Mesh::create(PlaneGeometry::create(0.4, 0.4), matInvisible), Vector3{0.2, 0.2, 0}, std::nullopt, std::nullopt, std::nullopt}
+                      }},
+                {"YZ", {
+                           {Mesh::create(PlaneGeometry::create(0.4, 0.4), matInvisible), Vector3{0, 0.2, 0.2}, Euler{0, math::PI/2, 0}, std::nullopt, std::nullopt}
+                     }},
+                {"XZ", {
+                           {Mesh::create(PlaneGeometry::create(0.4, 0.4), matInvisible), Vector3{0.2, 0, 0.2}, Euler{-math::PI/2, 0, 0}, std::nullopt, std::nullopt}
+                     }}
+        };
+
+        GizmoMap helperTranslate {
+                {"START", {
+                            {Mesh::create(OctahedronGeometry::create(0.01, 2), matHelper), std::nullopt, std::nullopt, std::nullopt, "helper"}
+                      }},
+                {"END", {
+                            {Mesh::create(OctahedronGeometry::create(0.01, 2), matHelper), std::nullopt, std::nullopt, std::nullopt, "helper"}
+                      }},
+                {"DELTA", {
+                            {Line::create(TranslateHelperGeometry(), matHelper), std::nullopt, std::nullopt, std::nullopt, "helper"}
+                      }},
+                {"X", {
+                            {Line::create(lineGeometry, matHelper->clone()), Vector3{-1e3, 0, 0}, std::nullopt, Vector3{1e6, 1, 1}, "helper"}
+                      }},
+                {"Y", {
+                            {Line::create(lineGeometry, matHelper->clone()), Vector3{0, -1e3, 0}, Euler{0, 0, math::PI/2}, Vector3{1e6, 1, 1}, "helper"}
+                      }},
+                {"Z", {
+                           {Line::create(lineGeometry, matHelper->clone()), Vector3{0, 0, -1e3}, Euler{0, -math::PI/2, 0}, Vector3{1e6, 1, 1}, "helper"}
+                     }}
+                };
+
+        GizmoMap gizmoRotate {
+                {"X", {
+                            {Line::create(CircleGeometry(1, 0.5), matLineRed), std::nullopt, std::nullopt, std::nullopt, std::nullopt},
+                            {Mesh::create(OctahedronGeometry::create(0.04, 0), matRed), Vector3{0, 0, 0.99}, std::nullopt, Vector3{1, 3, 1}, std::nullopt}
+                      }},
+                {"Y", {
+                            {Line::create(CircleGeometry(1, 0.5), matLineGreen), std::nullopt, Euler{0, 0, -math::PI/2}, std::nullopt, std::nullopt},
+                            {Mesh::create(OctahedronGeometry::create(0.04, 0), matGreen), Vector3{0, 0, 0.99}, std::nullopt, Vector3{3, 1, 1}, std::nullopt}
+                      }},
+                {"Z", {
+                            {Line::create(TranslateHelperGeometry(), matLineBlue), std::nullopt, Euler{0, math::PI/2, 0}, std::nullopt, std::nullopt},
+                            {Mesh::create(OctahedronGeometry::create(0.04, 0), matBlue), Vector3{0.99, 0, 0}, std::nullopt, Vector3{1, 3, 1}, std::nullopt},
+                      }},
+                {"E", {
+                            {Line::create(CircleGeometry(1.25, 1), matLineYellowTransparent), std::nullopt, Euler{0, math::PI/2, 0}, std::nullopt, std::nullopt},
+                            {Mesh::create(CylinderGeometry::create(0.03, 0, 0.15, 4, 1, false), matLineYellowTransparent), Vector3{1.17, 0, 0}, Euler{0, 0, -math::PI/2}, Vector3{1, 1, 0.001}, std::nullopt},
+                            {Mesh::create(CylinderGeometry::create(0.03, 0, 0.15, 4, 1, false), matLineYellowTransparent), Vector3{-1.17, 0, 0}, Euler{0, 0, math::PI/2}, Vector3{1, 1, 0.001}, std::nullopt},
+                            {Mesh::create(CylinderGeometry::create(0.03, 0, 0.15, 4, 1, false), matLineYellowTransparent), Vector3{0, -1.17, 0}, Euler{math::PI, 0, 0}, Vector3{1, 1, 0.001}, std::nullopt},
+                            {Mesh::create(CylinderGeometry::create(0.03, 0, 0.15, 4, 1, false), matLineYellowTransparent), Vector3{0, 1.17, 0}, Euler{0, 0, 0}, Vector3{1, 1, 0.001}, std::nullopt},
+                      }},
+                {"XYZE", {
+                            {Line::create(CircleGeometry(1, 1), matLineGray), std::nullopt, Euler{0, math::PI/2, 0}, std::nullopt, std::nullopt}
+                      }}
+                };
+
+        GizmoMap helperRotate {
+                {"AXIS", {
+                            {Line::create(lineGeometry, matHelper->clone()), Vector3{-1e3, 0, 0}, std::nullopt, Vector3{1e6, 1, 1}, std::nullopt}
+                     }}
+                };
+
+        GizmoMap pickerRotate {
+                {"X", {
+                            {Mesh::create(TorusGeometry::create(1, 0.1, 4, 24), matInvisible), Vector3{0, 0, 0}, Euler{0, -math::PI/2, -math::PI/2}, std::nullopt, std::nullopt}
+                      }},
+                {"Y", {
+                            {Mesh::create(TorusGeometry::create(1, 0.1, 4, 24), matInvisible), Vector3{0, 0, 0}, Euler{math::PI/2, 0, 0}, std::nullopt, std::nullopt}
+                      }},
+                {"Z", {
+                            {Mesh::create(TorusGeometry::create(1, 0.1, 4, 24), matInvisible), Vector3{0, 0, 0}, Euler{0, 0, -math::PI/2}, std::nullopt, std::nullopt},
+                      }},
+                {"E", {
+                            {Mesh::create(TorusGeometry::create(1.25, 0.1, 2, 24), matInvisible), std::nullopt, std::nullopt, std::nullopt, std::nullopt},
+                      }},
+                {"XYZE", {
+                            {Mesh::create(SphereGeometry::create(0.7, 10, 8), matInvisible), std::nullopt, std::nullopt, std::nullopt, std::nullopt}
+                      }}
+                };
+
+        GizmoMap gizmoScale {
+                {"X", {
+                            {Mesh::create(scaleHandleGeometry, matRed), Vector3{0.8, 0, 0}, Euler{0, 0, -math::PI/2}, std::nullopt, std::nullopt},
+                            {Line::create(lineGeometry, matLineRed), std::nullopt, std::nullopt, Vector3{0.8, 1, 1}, std::nullopt}
+                      }},
+                {"Y", {
+                            {Mesh::create(scaleHandleGeometry, matGreen), Vector3{0, 0.6, 0}, std::nullopt, std::nullopt, std::nullopt},
+                            {Line::create(lineGeometry, matLineGreen), std::nullopt, Euler{0, 0, math::PI/2}, Vector3{0.8, 1, 1}, std::nullopt}
+                      }},
+                {"Z", {
+                            {Mesh::create(scaleHandleGeometry, matBlue), Vector3{0, 0, 0.6}, Euler{math::PI/2, 0, 0}, std::nullopt, std::nullopt},
+                            {Line::create(lineGeometry, matLineGreen), std::nullopt, Euler{0, -math::PI/2, 0}, Vector3{0.8, 1, 1}, std::nullopt}
+                      }},
+                {"XY", {
+                            {Mesh::create(scaleHandleGeometry, matYellowTransparent), Vector3{0.85, 0.85, 0}, std::nullopt, Vector3{2, 2, 0.2}, std::nullopt},
+                            {Line::create(lineGeometry, matLineYellow), Vector3{0.855, 0.98, 0}, std::nullopt, Vector3{0.125, 1, 1}, std::nullopt},
+                            {Line::create(lineGeometry, matLineYellow), Vector3{0.98, 0.855, 0}, Euler{0, 0, math::PI/2}, Vector3{0.125, 1, 1}, std::nullopt}
+                      }},
+                {"YZ", {
+                            {Mesh::create(scaleHandleGeometry, matMagentaTransparent), Vector3{0, 0.85, 0.85}, std::nullopt, Vector3{0.2, 2, 2}, std::nullopt},
+                            {Line::create(lineGeometry, matLineMagenta), Vector3{0, 0.855, 0.98}, Euler{0, 0, math::PI/2}, Vector3{0.125, 1, 1}, std::nullopt},
+                            {Line::create(lineGeometry, matLineMagenta), Vector3{0, 0.98, 0.855}, Euler{0, -math::PI/2, 0}, Vector3{0.125, 1, 1}, std::nullopt}
+                      }},
+                {"XZ", {
+                           {Mesh::create(scaleHandleGeometry, matMagentaTransparent), Vector3{0.85, 0, 0.85}, std::nullopt, Vector3{2, 0.2, 2}, std::nullopt},
+                           {Line::create(lineGeometry, matLineMagenta), Vector3{0.855, 0, 0.98}, Euler{0, 0, math::PI/2}, Vector3{0.125, 1, 1}, std::nullopt},
+                           {Line::create(lineGeometry, matLineMagenta), Vector3{0.98, 0, 0.855}, Euler{0, -math::PI/2, 0}, Vector3{0.125, 1, 1}, std::nullopt}
+                     }},
+                {"XYZX", {
+                           {Mesh::create(BoxGeometry::create(0.125, 0.125, 0.125), matWhiteTransparent->clone()), Vector3{1.1, 0, 0}, std::nullopt, std::nullopt, std::nullopt}
+                     }},
+                {"XYZY", {
+                           {Mesh::create(BoxGeometry::create(0.125, 0.125, 0.125), matWhiteTransparent->clone()), Vector3{0, 1.1, 0}, std::nullopt, std::nullopt, std::nullopt}
+                     }},
+                {"XYZZ", {
+                           {Mesh::create(BoxGeometry::create(0.125, 0.125, 0.125), matWhiteTransparent->clone()), Vector3{0, 0, 1.1}, std::nullopt, std::nullopt, std::nullopt}
+                     }}
+        };
+
+        GizmoMap pickerScale {
+                {"X", {
+                            {Mesh::create(CylinderGeometry::create(0.2, 0, 0.8, 4, 1, false), matInvisible), Vector3{0.5, 0, 0}, Euler{0, 0, -math::PI/2}, std::nullopt, std::nullopt}
+                      }},
+                {"Y", {
+                            {Mesh::create(CylinderGeometry::create(0.2, 0, 0.8, 4, 1, false), matInvisible), Vector3{0, 0.5, 0}, std::nullopt, std::nullopt, std::nullopt}
+                      }},
+                {"Z", {
+                            {Mesh::create(CylinderGeometry::create(0.2, 0, 0.8, 4, 1, false), matInvisible), Vector3{0, 0, 0.5}, Euler{math::PI/2, 0, 0}, std::nullopt, std::nullopt}
+                      }},
+                {"XY", {
+                            {Mesh::create(scaleHandleGeometry, matInvisible), Vector3{0.85, 0.85, 0}, std::nullopt, Vector3{3, 3, 0.2}, std::nullopt}
+                      }},
+                {"YZ", {
+                            {Mesh::create(scaleHandleGeometry, matInvisible), Vector3{0, 0.85, 0.85}, std::nullopt, Vector3{0.2, 3, 3}, std::nullopt}
+                      }},
+                {"XZ", {
+                           {Mesh::create(scaleHandleGeometry, matInvisible), Vector3{0.85, 0, 0.85}, std::nullopt, Vector3{3, 0.2, 3}, std::nullopt}
+                     }},
+                {"XYZX", {
+                           {Mesh::create(BoxGeometry::create(0.2, 0.2, 0.2), matInvisible), Vector3{1.1, 0, 0}, std::nullopt, std::nullopt, std::nullopt}
+                     }},
+                {"XYZY", {
+                           {Mesh::create(BoxGeometry::create(0.2, 0.2, 0.2), matInvisible), Vector3{0, 1.1, 0}, std::nullopt, std::nullopt, std::nullopt}
+                     }},
+                {"XYZZ", {
+                           {Mesh::create(BoxGeometry::create(0.2, 0.2, 0.2), matInvisible), Vector3{0, 0, 1.1}, std::nullopt, std::nullopt, std::nullopt}
+                     }}
+        };
+
+        GizmoMap helperScale {
+                {"X", {
+                            {Line::create(lineGeometry, matHelper->clone()), Vector3{-1e3, 0, 0}, std::nullopt, Vector3{1e6, 1, 1}, "helper"}
+                     }},
+                {"Y", {
+                            {Line::create(lineGeometry, matHelper->clone()), Vector3{0, -1e3, 0}, Euler{0, 0, math::PI/2}, Vector3{1e6, 1, 1}, "helper"}
+                     }},
+                {"Z", {
+                            {Line::create(lineGeometry, matHelper->clone()), Vector3{0, 0, -1e3}, Euler{0, -math::PI/2, 0}, Vector3{1e6, 1, 1}, "helper"}
+                     }}
+                };
+
         // clang-format on
     }
 };
@@ -185,36 +380,36 @@ struct TransformControlsPlane: Mesh {
 
     void updateMatrixWorld(bool force) override {
 
-        auto space = this.space;
+        auto space = this->space;
 
-        this.position.copy( this.worldPosition );
+        this->position.copy( this->worldPosition );
 
-        if ( this.mode === 'scale' ) space = 'local'; // scale always oriented to local rotation
+        if ( this->mode == "scale" ) space = "local"; // scale always oriented to local rotation
 
-        _v1.copy( _unitX ).applyQuaternion( space === 'local' ? this.worldQuaternion : _identityQuaternion );
-        _v2.copy( _unitY ).applyQuaternion( space === 'local' ? this.worldQuaternion : _identityQuaternion );
-        _v3.copy( _unitZ ).applyQuaternion( space === 'local' ? this.worldQuaternion : _identityQuaternion );
+        _v1.copy( _unitX ).applyQuaternion( space == "local" ? this->worldQuaternion : _identityQuaternion );
+        _v2.copy( _unitY ).applyQuaternion( space == "local" ? this->worldQuaternion : _identityQuaternion );
+        _v3.copy( _unitZ ).applyQuaternion( space == "local" ? this->worldQuaternion : _identityQuaternion );
 
         // Align the plane for current transform mode, axis and space.
 
         _alignVector.copy( _v2 );
 
-        switch ( this.mode ) {
+        switch ( this->mode ) {
 
             case 'translate':
             case 'scale':
-                switch ( this.axis ) {
+                switch ( this->axis ) {
 
                     case 'X':
-                        _alignVector.copy( this.eye ).cross( _v1 );
+                        _alignVector.copy( this->eye ).cross( _v1 );
                         _dirVector.copy( _v1 ).cross( _alignVector );
                         break;
                     case 'Y':
-                        _alignVector.copy( this.eye ).cross( _v2 );
+                        _alignVector.copy( this->eye ).cross( _v2 );
                         _dirVector.copy( _v2 ).cross( _alignVector );
                         break;
                     case 'Z':
-                        _alignVector.copy( this.eye ).cross( _v3 );
+                        _alignVector.copy( this->eye ).cross( _v3 );
                         _dirVector.copy( _v3 ).cross( _alignVector );
                         break;
                     case 'XY':
@@ -242,16 +437,16 @@ struct TransformControlsPlane: Mesh {
 
         }
 
-        if ( _dirVector.length() === 0 ) {
+        if ( _dirVector.length() == 0 ) {
 
             // If in rotate mode, make the plane parallel to camera
-            this.quaternion.copy( this.cameraQuaternion );
+            this->quaternion.copy( this->cameraQuaternion );
 
         } else {
 
             _tempMatrix.lookAt( _tempVector.set( 0, 0, 0 ), _dirVector, _alignVector );
 
-            this.quaternion.setFromRotationMatrix( _tempMatrix );
+            this->quaternion.setFromRotationMatrix( _tempMatrix );
 
         }
 
@@ -406,13 +601,13 @@ struct TransformControls::Impl {
                 this->_quaternionStart.copy(this->object->quaternion);
                 this->_scaleStart.copy(this->object->scale);
 
-                this->object->matrixWorld->decompose(this->worldPositionStart, this->worldQuaternionStart, this._worldScaleStart);
+                this->object->matrixWorld->decompose(this->worldPositionStart, this->worldQuaternionStart, this->_worldScaleStart);
 
-                this->pointStart.copy(planeIntersect.point).sub(this.worldPositionStart);
+                this->pointStart.copy(planeIntersect.point).sub(this->worldPositionStart);
             }
 
             scope.dragging = true;
-            _mouseDownEvent.mode = this.mode;
+            _mouseDownEvent.mode = this->mode;
             scope.dispatchEvent(_mouseDownEvent);
         }
     }
