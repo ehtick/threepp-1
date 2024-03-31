@@ -32,17 +32,20 @@ void EventDispatcher::removeEventListener(const std::string& type, const EventLi
     }
 }
 
-void EventDispatcher::dispatchEvent(const std::string& type, void* target) {
+void EventDispatcher::dispatchEvent(Event& event) {
+    if (listeners_.count(event.type)) {
 
-    if (listeners_.count(type)) {
-
-        Event e{type, target};
-
-        auto listenersOfType = listeners_.at(type);//copy
+        auto listenersOfType = listeners_.at(event.type);//copy
         for (auto l : listenersOfType) {
             if (l) {
-                l->onEvent(e);
+                l->onEvent(event);
             }
         }
     }
+}
+
+void EventDispatcher::dispatchEvent(const std::string& type, void* target) {
+
+    Event e{type, target};
+    dispatchEvent(e);
 }

@@ -1,5 +1,6 @@
 
 #include "threepp/threepp.hpp"
+#include "threepp/controls/TransformControls.hpp"
 
 using namespace threepp;
 
@@ -29,6 +30,15 @@ int main() {
     light->shadow->mapSize.y = 1024;
 
     scene.add(light);
+
+    auto material = MeshBasicMaterial::create();
+    auto object = Mesh::create(BoxGeometry::create(), material);
+    scene.add(object);
+
+    TransformControls controls(camera, canvas);
+    controls.object = object.get();
+
+    scene.add(controls);
 
     canvas.onWindowResize([&](WindowSize size) {
         camera.aspect = size.aspect();

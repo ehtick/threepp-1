@@ -30,9 +30,26 @@ namespace {
 
     Raycaster _raycaster;
 
-    Vector3 _tmpVector;
-    Vector2 _tempVector2;
+    Vector3 _tempVector;
+    Vector3 _tempVector2;
+
+    Quaternion _identityQuaternion;
     Quaternion _tempQuaternion;
+    Matrix4 _tempMatrix;
+
+    std::unordered_map<std::string, Vector3> _unit{
+            {"X", Vector3{1, 0, 0}},
+            {"Y", Vector3{}},
+            {"Z", Vector3{}}};
+
+    Vector3 _v1, _v2, _v3;
+    Vector3 _unitX = Vector3(1, 0, 0), _unitY = Vector3(0, 1, 0), _unitZ = Vector3(0, 0, 1);
+    Vector3 _dirVector, _alignVector;
+
+    Event _changeEvent{"change"};
+    Event _mouseDownEvent{"mouseDown"};
+    Event _mouseUpEvent{"mouseUp"};
+    Event _objectChangeEvent{"objectChange"};
 
     using GizmoMap = std::unordered_map<std::string, std::vector<std::tuple<std::shared_ptr<Object3D>, std::optional<Vector3>, std::optional<Euler>, std::optional<Vector3>, std::optional<std::string>>>>;
 
@@ -63,9 +80,37 @@ namespace {
     }
 
 
+    template<class T>
+    struct Property {
+
+        Property(const std::string& propName, T defaultValue)
+            : defaultValue(defaultValue), propName(propName) {}
+
+        operator T() const {
+
+            return propValue.value_or(defaultValue);
+        }
+
+        void operator[](T value) {
+
+            if (propValue != value) {
+
+                propValue = value;
+            }
+        }
+
+    private:
+        T defaultValue;
+        std::string propName;
+        std::optional<T> propValue;
+    };
+
+
 }// namespace
 
 struct TransformControlsGizmo: Object3D {
+
+    std::unordered_map<std::string, Object3D*> picker;
 
     TransformControlsGizmo() {
 
@@ -369,6 +414,14 @@ struct TransformControlsGizmo: Object3D {
 
 struct TransformControlsPlane: Mesh {
 
+    std::string* mode = nullptr;
+    std::string* space = nullptr;
+    std::string* axis = nullptr;
+    Vector3* eye = nullptr;
+    Vector3* worldPosition = nullptr;
+    Quaternion* worldQuaternion = nullptr;
+    Quaternion* cameraQuaternion = nullptr;
+
     TransformControlsPlane()
         : Mesh(PlaneGeometry::create(100000, 100000, 2, 2),
                MeshBasicMaterial::create({{"visible", false},
@@ -382,72 +435,56 @@ struct TransformControlsPlane: Mesh {
 
         auto space = this->space;
 
-        this->position.copy( this->worldPosition );
+        this->position.copy(*this->worldPosition);
 
-        if ( this->mode == "scale" ) space = "local"; // scale always oriented to local rotation
+        if (*this->mode == "scale") *space = "local";// scale always oriented to local rotation
 
-        _v1.copy( _unitX ).applyQuaternion( space == "local" ? this->worldQuaternion : _identityQuaternion );
-        _v2.copy( _unitY ).applyQuaternion( space == "local" ? this->worldQuaternion : _identityQuaternion );
-        _v3.copy( _unitZ ).applyQuaternion( space == "local" ? this->worldQuaternion : _identityQuaternion );
+        _v1.copy(_unitX).applyQuaternion(*space == "local" ? *this->worldQuaternion : _identityQuaternion);
+        _v2.copy(_unitY).applyQuaternion(*space == "local" ? *this->worldQuaternion : _identityQuaternion);
+        _v3.copy(_unitZ).applyQuaternion(*space == "local" ? *this->worldQuaternion : _identityQuaternion);
 
         // Align the plane for current transform mode, axis and space.
 
-        _alignVector.copy( _v2 );
+        _alignVector.copy(_v2);
 
-        switch ( this->mode ) {
+        if (*this->mode == "translate" || *this->mode == "scale") {
 
-            case 'translate':
-            case 'scale':
-                switch ( this->axis ) {
+            if (*this->axis == "X") {
 
-                    case 'X':
-                        _alignVector.copy( this->eye ).cross( _v1 );
-                        _dirVector.copy( _v1 ).cross( _alignVector );
-                        break;
-                    case 'Y':
-                        _alignVector.copy( this->eye ).cross( _v2 );
-                        _dirVector.copy( _v2 ).cross( _alignVector );
-                        break;
-                    case 'Z':
-                        _alignVector.copy( this->eye ).cross( _v3 );
-                        _dirVector.copy( _v3 ).cross( _alignVector );
-                        break;
-                    case 'XY':
-                        _dirVector.copy( _v3 );
-                        break;
-                    case 'YZ':
-                        _dirVector.copy( _v1 );
-                        break;
-                    case 'XZ':
-                        _alignVector.copy( _v3 );
-                        _dirVector.copy( _v2 );
-                        break;
-                    case 'XYZ':
-                    case 'E':
-                        _dirVector.set( 0, 0, 0 );
-                        break;
+                _alignVector.copy(*this->eye).cross(_v1);
+                _dirVector.copy(_v1).cross(_alignVector);
+            } else if (*this->axis == "Y") {
+                _alignVector.copy(*this->eye).cross(_v2);
+                _dirVector.copy(_v2).cross(_alignVector);
+            } else if (*this->axis == "Z") {
+                _alignVector.copy(*this->eye).cross(_v3);
+                _dirVector.copy(_v3).cross(_alignVector);
+            } else if (*this->axis == "XY") {
+                _dirVector.copy(_v3);
+            } else if (*this->axis == "YZ") {
+                _dirVector.copy(_v1);
+            } else if (*this->axis == "XZ") {
+                _alignVector.copy(_v3);
+                _dirVector.copy(_v2);
+            } else if (*this->axis == "XYZ" || *this->axis == "E") {
 
-                }
+                _dirVector.set(0, 0, 0);
+            }
+        } else {
 
-                break;
-            case 'rotate':
-            default:
-                // special case for rotate
-                _dirVector.set( 0, 0, 0 );
-
+            _dirVector.set(0, 0, 0);
         }
 
-        if ( _dirVector.length() == 0 ) {
+        if (_dirVector.length() == 0) {
 
             // If in rotate mode, make the plane parallel to camera
-            this->quaternion.copy( this->cameraQuaternion );
+            this->quaternion.copy(*this->cameraQuaternion);
 
         } else {
 
-            _tempMatrix.lookAt( _tempVector.set( 0, 0, 0 ), _dirVector, _alignVector );
+            _tempMatrix.lookAt(_tempVector.set(0, 0, 0), _dirVector, _alignVector);
 
-            this->quaternion.setFromRotationMatrix( _tempMatrix );
-
+            this->quaternion.setFromRotationMatrix(_tempMatrix);
         }
 
         Object3D::updateMatrixWorld(force);
@@ -474,6 +511,20 @@ struct TransformControls::Impl {
     Quaternion _quaternionStart;
     Vector3 _scaleStart;
 
+    Vector3 pointStart;
+    Vector3 pointEnd;
+    Vector3 worldPositionStart;
+    Quaternion worldQuaternionStart;
+
+    bool dragging{false};
+
+    Vector3 rotationAxis;
+
+    float rotationAngle;
+
+    //    std::string mode;
+    std::optional<std::string> axis;
+
     std::shared_ptr<TransformControlsGizmo> _gizmo;
     std::shared_ptr<TransformControlsPlane> _plane;
 
@@ -481,42 +532,11 @@ struct TransformControls::Impl {
     PeripheralsEventSource& canvas;
     Camera& camera;
 
-    Object3D* object = nullptr;
-
     Vector3 worldPosition;
     Quaternion worldQuaternion;
     Vector3 cameraPosition;
     Quaternion cameraQuaternion;
     Vector3 eye;
-
-
-    //    template <class T>
-    //    struct Property {
-    //
-    //        Property(Impl& scope, const std::string& propName, T defaultValue)
-    //            : scope(scope), defaultValue(defaultValue), propName(propName) {}
-    //
-    //        operator T() const {
-    //
-    //            return propValue.value_or(defaultValue);
-    //        }
-    //
-    //        void operator[](T value) {
-    //
-    //            if (propValue != value) {
-    //
-    //                propValue = value;
-    //            }
-    //
-    //        }
-    //
-    //    private:
-    //        Impl& scope;
-    //        T defaultValue;
-    //        std::string propName;
-    //        std::optional<T> propValue;
-    //
-    //    };
 
     Impl(TransformControls& scope, Camera& camera, PeripheralsEventSource& canvas)
         : scope(scope), camera(camera), canvas(canvas),
@@ -529,7 +549,7 @@ struct TransformControls::Impl {
         this->eye.copy(this->cameraPosition).sub(this->worldPosition).normalize();
     }
 
-    static std::optional<Intersection> intersectObjectWithRay(Object3D& object, Raycaster& raycaster, bool includeInvisible) {
+    static std::optional<Intersection> intersectObjectWithRay(Object3D& object, Raycaster& raycaster, bool includeInvisible = false) {
 
         const auto allIntersections = raycaster.intersectObject(object, true);
 
@@ -546,15 +566,15 @@ struct TransformControls::Impl {
 
     void pointerHover(Vector2 pointer) {
 
-        if (!this->object || scope.dragging) return;
+        if (!this->scope.object || scope.dragging) return;
 
         _raycaster.setFromCamera(pointer, this->camera);
 
-        const auto intersect = intersectObjectWithRay(this->_gizmo.picker[scope.mode], _raycaster);
+        const auto intersect = intersectObjectWithRay(*this->_gizmo->picker[scope.mode], _raycaster);
 
         if (intersect) {
 
-            this->axis = intersect.object.name;
+            this->axis = intersect->object->name;
 
         } else {
 
@@ -564,9 +584,9 @@ struct TransformControls::Impl {
 
     void pointerDown(int button, Vector2 pointer) {
 
-        if (!this->object || scope.dragging || button != 0) return;
+        if (!this->scope.object || scope.dragging || button != 0) return;
 
-        if (this->axis != nullptr) {
+        if (this->axis) {
 
             _raycaster.setFromCamera(pointer, this->camera);
 
@@ -587,29 +607,255 @@ struct TransformControls::Impl {
 
                 if (space == "local" && scope.mode == "rotate") {
 
-                    const auto snap = scope.rotationSnap;
-
-                    if (this->axis == "X" && snap) this->object->rotation.x = std::round(this->object->rotation.x / snap) * snap;
-                    if (this->axis == "Y" && snap) this->object->rotation.y = std::round(this->object->rotation.y / snap) * snap;
-                    if (this->axis == "Z" && snap) this->object->rotation.z = std::round(this->object->rotation.z / snap) * snap;
+                    //                    const auto snap = scope.rotationSnap;
+                    //
+                    //                    if (this->axis == "X" && snap) this->object->rotation.x = std::round(this->object->rotation.x / snap) * snap;
+                    //                    if (this->axis == "Y" && snap) this->object->rotation.y = std::round(this->object->rotation.y / snap) * snap;
+                    //                    if (this->axis == "Z" && snap) this->object->rotation.z = std::round(this->object->rotation.z / snap) * snap;
                 }
 
-                this->object->updateMatrixWorld();
-                this->object->parent->updateMatrixWorld();
+                this->scope.object->updateMatrixWorld();
+                this->scope.object->parent->updateMatrixWorld();
 
-                this->_positionStart.copy(this->object->position);
-                this->_quaternionStart.copy(this->object->quaternion);
-                this->_scaleStart.copy(this->object->scale);
+                this->_positionStart.copy(this->scope.object->position);
+                this->_quaternionStart.copy(this->scope.object->quaternion);
+                this->_scaleStart.copy(this->scope.object->scale);
 
-                this->object->matrixWorld->decompose(this->worldPositionStart, this->worldQuaternionStart, this->_worldScaleStart);
+                this->scope.object->matrixWorld->decompose(this->worldPositionStart, this->worldQuaternionStart, this->_worldScaleStart);
 
-                this->pointStart.copy(planeIntersect.point).sub(this->worldPositionStart);
+                this->pointStart.copy(planeIntersect->point).sub(this->worldPositionStart);
             }
 
             scope.dragging = true;
-            _mouseDownEvent.mode = this->mode;
+            _mouseDownEvent.target = &this->scope.mode;
             scope.dispatchEvent(_mouseDownEvent);
         }
+    }
+
+    void pointerMove(int button, Vector2 pointer) {
+
+        const auto axis = this->axis;
+        const auto mode = this->scope.mode;
+        const auto object = this->scope.object;
+        auto space = this->scope.space;
+
+        if (mode == "scale") {
+
+            space = "local";
+
+        } else if (axis == "E" || axis == "XYZE" || axis == "XYZ") {
+
+            space = "world";
+        }
+
+        if (!object || !axis || this->dragging == false || button != -1) return;
+
+        _raycaster.setFromCamera(pointer, this->camera);
+
+        const auto planeIntersect = intersectObjectWithRay(*this->_plane, _raycaster, true);
+
+        if (!planeIntersect) return;
+
+        this->pointEnd.copy(planeIntersect->point).sub(this->worldPositionStart);
+
+        if (mode == "translate") {
+
+            // Apply translate
+
+            this->_offset.copy(this->pointEnd).sub(this->pointStart);
+
+            if (space == "local" && axis != "XYZ") {
+
+                this->_offset.applyQuaternion(this->_worldQuaternionInv);
+            }
+
+            if (axis->find('X') == std::string::npos) this->_offset.x = 0;
+            if (axis->find('Y') == std::string::npos) this->_offset.y = 0;
+            if (axis->find('Z') == std::string::npos) this->_offset.z = 0;
+
+            if (space == "local" && axis != "XYZ") {
+
+                this->_offset.applyQuaternion(this->_quaternionStart).divide(this->_parentScale);
+
+            } else {
+
+                this->_offset.applyQuaternion(this->_parentQuaternionInv).divide(this->_parentScale);
+            }
+
+            object->position.copy(this->_offset).add(this->_positionStart);
+
+            // Apply translation snap
+
+            if (this->scope.translationSnap) {
+
+                if (space == "local") {
+
+                    object->position.applyQuaternion(_tempQuaternion.copy(this->_quaternionStart).invert());
+
+                    if (axis->find('X') != std::string::npos) {
+
+                        object->position.x = std::round(object->position.x / *this->scope.translationSnap) * *this->scope.translationSnap;
+                    }
+
+                    if (axis->find('Y') != std::string::npos) {
+
+                        object->position.y = std::round(object->position.y / *this->scope.translationSnap) * *this->scope.translationSnap;
+                    }
+
+                    if (axis->find('Z') != std::string::npos) {
+
+                        object->position.z = std::round(object->position.z / *this->scope.translationSnap) * *this->scope.translationSnap;
+                    }
+
+                    object->position.applyQuaternion(this->_quaternionStart);
+                }
+
+                if (space == "world") {
+
+                    if (object->parent) {
+
+                        object->position.add(_tempVector.setFromMatrixPosition(*object->parent->matrixWorld));
+                    }
+
+                    if (axis->find('X') != std::string::npos) {
+
+                        object->position.x = std::round(object->position.x / *this->scope.translationSnap) * *this->scope.translationSnap;
+                    }
+
+                    if (axis->find('Y') != std::string::npos) {
+
+                        object->position.y = std::round(object->position.y / *this->scope.translationSnap) * *this->scope.translationSnap;
+                    }
+
+                    if (axis->find('Z') != std::string::npos) {
+
+                        object->position.z = std::round(object->position.z / *this->scope.translationSnap) * *this->scope.translationSnap;
+                    }
+
+                    if (object->parent) {
+
+                        object->position.sub(_tempVector.setFromMatrixPosition(*object->parent->matrixWorld));
+                    }
+                }
+            }
+
+        } else if (mode == "scale") {
+
+            if (axis->find("XYZ") != std::string::npos) {
+
+                auto d = this->pointEnd.length() / this->pointStart.length();
+
+                if (this->pointEnd.dot(this->pointStart) < 0) d *= -1;
+
+                _tempVector2.set(d, d, d);
+
+            } else {
+
+                _tempVector.copy(this->pointStart);
+                _tempVector2.copy(this->pointEnd);
+
+                _tempVector.applyQuaternion(this->_worldQuaternionInv);
+                _tempVector2.applyQuaternion(this->_worldQuaternionInv);
+
+                _tempVector2.divide(_tempVector);
+
+                if (axis->find('X') == std::string::npos) {
+
+                    _tempVector2.x = 1;
+                }
+
+                if (axis->find('Y') == std::string::npos) {
+
+                    _tempVector2.y = 1;
+                }
+
+                if (axis->find('Z') == std::string::npos) {
+
+                    _tempVector2.z = 1;
+                }
+            }
+
+            // Apply scale
+
+            object->scale.copy(this->_scaleStart).multiply(_tempVector2);
+
+            //            if ( this->scaleSnap ) {
+            //
+            //                if ( axis.search( 'X' ) !== - 1 ) {
+            //
+            //                    object.scale.x = std::round( object.scale.x / this->scaleSnap ) * this->scaleSnap || this->scaleSnap;
+            //
+            //                }
+            //
+            //                if ( axis.search( 'Y' ) !== - 1 ) {
+            //
+            //                    object.scale.y = std::round( object.scale.y / this->scaleSnap ) * this->scaleSnap || this->scaleSnap;
+            //
+            //                }
+            //
+            //                if ( axis.search( 'Z' ) !== - 1 ) {
+            //
+            //                    object.scale.z = std::round( object.scale.z / this->scaleSnap ) * this->scaleSnap || this->scaleSnap;
+            //
+            //                }
+            //
+            //            }
+
+        } else if (mode == "rotate") {
+
+            this->_offset.copy(this->pointEnd).sub(this->pointStart);
+
+            const auto ROTATION_SPEED = 20.f / this->worldPosition.distanceTo(_tempVector.setFromMatrixPosition(*this->camera.matrixWorld));
+
+            if (axis == "E") {
+
+                this->rotationAxis.copy(this->eye);
+                this->rotationAngle = this->pointEnd.angleTo(this->pointStart);
+
+                this->_startNorm.copy(this->pointStart).normalize();
+                this->_endNorm.copy(this->pointEnd).normalize();
+
+                this->rotationAngle *= (this->_endNorm.cross(this->_startNorm).dot(this->eye) < 0 ? 1 : -1);
+
+            } else if (axis == "XYZE") {
+
+                this->rotationAxis.copy(this->_offset).cross(this->eye).normalize();
+                this->rotationAngle = this->_offset.dot(_tempVector.copy(this->rotationAxis).cross(this->eye)) * ROTATION_SPEED;
+
+            } else if (axis == "X" || axis == "Y" || axis == "Z") {
+
+                this->rotationAxis.copy(_unit[*axis]);
+
+                _tempVector.copy(_unit[*axis]);
+
+                if (space == "local") {
+
+                    _tempVector.applyQuaternion(this->worldQuaternion);
+                }
+
+                this->rotationAngle = this->_offset.dot(_tempVector.cross(this->eye).normalize()) * ROTATION_SPEED;
+            }
+
+            // Apply rotation snap
+
+            if (this->scope.rotationSnap) this->rotationAngle = std::round(this->rotationAngle / *this->scope.rotationSnap) * *this->scope.rotationSnap;
+
+            // Apply rotate
+            if (space == "local" && axis != "E" && axis != "XYZE") {
+
+                object->quaternion.copy(this->_quaternionStart);
+                object->quaternion.multiply(_tempQuaternion.setFromAxisAngle(this->rotationAxis, this->rotationAngle)).normalize();
+
+            } else {
+
+                this->rotationAxis.applyQuaternion(this->_parentQuaternionInv);
+                object->quaternion.copy(_tempQuaternion.setFromAxisAngle(this->rotationAxis, this->rotationAngle));
+                object->quaternion.multiply(this->_quaternionStart).normalize();
+            }
+        }
+
+//        this->dispatchEvent(_changeEvent);
+//        this->dispatchEvent(_objectChangeEvent);
     }
 
     std::shared_ptr<Object3D> setupGizmo(const GizmoMap& gizmoMap) {
@@ -676,20 +922,20 @@ TransformControls::TransformControls(Camera& camera, PeripheralsEventSource& can
 
 void TransformControls::updateMatrixWorld(bool force) {
 
-    if (pimpl_->object) {
+    if (object) {
 
-        pimpl_->object->updateMatrixWorld();
+        object->updateMatrixWorld();
 
-        if (!pimpl_->object->parent) {
+        if (!object->parent) {
 
             std::cerr << "TransformControls: The attached 3D object must be a part of the scene graph." << std::endl;
 
         } else {
 
-            pimpl_->object->parent->matrixWorld->decompose(pimpl_->_parentPosition, pimpl_->_parentQuaternion, pimpl_->_parentScale);
+            object->parent->matrixWorld->decompose(pimpl_->_parentPosition, pimpl_->_parentQuaternion, pimpl_->_parentScale);
         }
 
-        pimpl_->object->matrixWorld->decompose(pimpl_->worldPosition, pimpl_->worldQuaternion, pimpl_->_worldScale);
+        object->matrixWorld->decompose(pimpl_->worldPosition, pimpl_->worldQuaternion, pimpl_->_worldScale);
 
         pimpl_->_parentQuaternionInv.copy(pimpl_->_parentQuaternion).invert();
         pimpl_->_worldQuaternionInv.copy(pimpl_->worldQuaternion).invert();

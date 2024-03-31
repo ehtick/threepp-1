@@ -23,7 +23,10 @@ namespace threepp {
         bool showY = true;
         bool showZ = true;
 
+        std::optional<float> rotationSnap;
+        std::optional<float> translationSnap;
 
+        Object3D* object = nullptr;
 
         TransformControls(Camera& camera, PeripheralsEventSource& canvas);
 
