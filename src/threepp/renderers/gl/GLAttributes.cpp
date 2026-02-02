@@ -115,8 +115,6 @@ void GLAttributes::remove(BufferAttribute* attribute) {
     }
 }
 
-#include <iostream>
-
 void GLAttributes::update(BufferAttribute* attribute, GLenum bufferType) {
 
     if (auto attr = dynamic_cast<InterleavedBufferAttribute*>(attribute)) {
