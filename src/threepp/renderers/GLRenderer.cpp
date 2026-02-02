@@ -193,6 +193,11 @@ struct GLRenderer::Impl {
         return textures.getGlTexture(texture);
     }
 
+    [[nodiscard]] std::optional<unsigned int> getGlBufferId(BufferAttribute& attribute) const {
+
+        return attributes.get(&attribute).buffer;
+    }
+
     void deallocateMaterial(Material* material) {
 
         releaseMaterialProgramReferences(material);
@@ -1466,6 +1471,11 @@ GLRenderTarget* GLRenderer::getRenderTarget() {
 std::optional<unsigned int> GLRenderer::getGlTextureId(Texture& texture) const {
 
     return pimpl_->getGlTextureId(texture);
+}
+
+std::optional<unsigned int> GLRenderer::getGlBufferId(BufferAttribute& buffer) const {
+
+    return pimpl_->getGlBufferId(buffer);
 }
 
 void GLRenderer::writeFramebuffer(const std::filesystem::path& filename) {

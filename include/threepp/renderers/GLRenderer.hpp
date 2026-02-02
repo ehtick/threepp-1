@@ -30,6 +30,7 @@ namespace threepp {
     class Material;
     class Texture;
     class GLRenderTarget;
+    class BufferAttribute;
 
     class GLRenderer {
 
@@ -166,6 +167,8 @@ namespace threepp {
         [[nodiscard]] const gl::GLInfo& info() const;
 
         [[nodiscard]] std::optional<unsigned int> getGlTextureId(Texture& texture) const;
+
+        [[nodiscard]] std::optional<unsigned int> getGlBufferId(BufferAttribute& bufferAttribute) const;
 
         void writeFramebuffer(const std::filesystem::path& filename);
 
