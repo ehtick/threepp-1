@@ -36,10 +36,16 @@ namespace threepp::math {
     float damp(float x, float y, float lambda, float dt);
 
     // Converts degrees to radians.
-    float degToRad(float degrees);
+    constexpr inline float degToRad(float degrees) {
+
+        return degrees * DEG2RAD;
+    }
 
     // Converts radians to degrees.
-    float radToDeg(float radians);
+    constexpr inline float radToDeg(float radians) {
+
+        return radians * RAD2DEG;
+    }
 
     // Random integer in the interval [low, high].
     int randInt(int low, int high);
