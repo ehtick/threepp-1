@@ -90,7 +90,7 @@ void GLAttributes::updateBuffer(GLuint buffer, BufferAttribute* attribute, GLenu
     }
 }
 
-Buffer GLAttributes::get(BufferAttribute* attribute) {
+Buffer GLAttributes::get(BufferAttribute* attribute) const {
 
     if (auto attr = dynamic_cast<InterleavedBufferAttribute*>(attribute)) {
         attribute = attr->data.get();
