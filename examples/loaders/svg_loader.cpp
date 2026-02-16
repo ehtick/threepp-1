@@ -138,6 +138,7 @@ int main() {
 
     auto gridHelper = GridHelper::create(160, 10);
     gridHelper->rotation.x = math::PI / 2;
+    gridHelper->position.z = -0.1f;
     scene->add(gridHelper);
 
     std::shared_ptr<Object3D> svg;
