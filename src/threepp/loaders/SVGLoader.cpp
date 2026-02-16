@@ -1285,7 +1285,7 @@ ShapePath SVGLoader::Impl::parseCircleNode(const pugi::xml_node& node) const {
 
     const auto x = parseFloatWithUnits(node.attribute("cx").as_string("0"));
     const auto y = parseFloatWithUnits(node.attribute("cy").as_string("0"));
-    const auto r = parseFloatWithUnits(node.attribute("x").as_string("0"));
+    const auto r = parseFloatWithUnits(node.attribute("r").as_string("0"));
 
     auto subpath = std::make_shared<Path>();
     subpath->absarc(x, y, r, 0, math::PI * 2);
