@@ -990,6 +990,8 @@ void SVGLoader::Impl::parseNode(const pugi::xml_node& node, Style style) {
     std::string nodeName{node.name()};
     if (nodeName == "svg") {
 
+        style = parseStyle(node, style);
+
     } else if (nodeName == "style") {
 
         parseStyleSheet(node);
