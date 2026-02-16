@@ -48,7 +48,7 @@ struct SVGLoader::Impl {
 
     SVGLoader* scope;
 
-    std::vector<SVGLoader::SVGData> paths;
+    std::vector<SVGData> paths;
     std::unordered_map<std::string, std::string> styleSheets;
 
     std::vector<Matrix3> transformStack;
@@ -56,7 +56,7 @@ struct SVGLoader::Impl {
 
     explicit Impl(SVGLoader& scope): scope(&scope) {}
 
-    std::vector<SVGLoader::SVGData> load(const pugi::xml_node& node);
+    std::vector<SVGData> load(const pugi::xml_node& node);
 
     [[nodiscard]] float clamp(float v) const {
 
@@ -123,14 +123,14 @@ std::vector<Shape> SVGLoader::createShapes(const SVGData& data) {
 
     const auto& shapePath = data.path;
 
-    const auto BIGNUMBER = 999999999.f;
+    constexpr auto BIGNUMBER = 999999999.f;
 
     auto scanlineMinX = BIGNUMBER;
     auto scanlineMaxX = -BIGNUMBER;
 
     std::vector<svg::SimplePath> simplePaths;
     const auto& subPaths = shapePath.subPaths;
-    std::transform(subPaths.begin(), subPaths.end(), std::back_inserter(simplePaths), [&](const auto& p) {
+    std::ranges::transform(subPaths, std::back_inserter(simplePaths), [&](const auto& p) {
         const auto& points = p->getPoints();
         float maxY = -BIGNUMBER;
         float minY = BIGNUMBER;
@@ -193,7 +193,7 @@ std::vector<Shape> SVGLoader::createShapes(const SVGData& data) {
     }
 
     std::vector<std::optional<svg::AHole>> isAHole;
-    std::transform(simplePaths.begin(), simplePaths.end(), std::back_inserter(isAHole), [&](const auto& p) {
+    std::ranges::transform(simplePaths, std::back_inserter(isAHole), [&](const auto& p) {
         return isHoleTo(p, simplePaths, scanlineMinX, scanlineMaxX, data.style.fillRule);
     });
 
@@ -865,6 +865,44 @@ std::vector<SVGLoader::SVGData> SVGLoader::Impl::load(const pugi::xml_node& node
     paths.clear();
     styleSheets.clear();
     transformStack.clear();
+    currentTransform.identity();
+
+    // // Apply viewBox / width/height transform if present
+    // const auto svgNode = node.child("svg");
+    // if (svgNode) {
+    //
+    //     if (svgNode.attribute("viewBox")) {
+    //
+    //         // parse viewBox: "minX minY width height"
+    //         const auto nums = svg::parseFloats(svgNode.attribute("viewBox").value());
+    //         if (nums.size() == 4) {
+    //
+    //             const float minX = nums[0];
+    //             const float minY = nums[1];
+    //             const float vbW = nums[2];
+    //             const float vbH = nums[3];
+    //
+    //             // width/height may have units; use parseFloatWithUnits
+    //             float w = vbW;
+    //             float h = vbH;
+    //             if (svgNode.attribute("width")) w = parseFloatWithUnits(svgNode.attribute("width").value());
+    //             if (svgNode.attribute("height")) h = parseFloatWithUnits(svgNode.attribute("height").value());
+    //
+    //             if (vbW != 0 && vbH != 0) {
+    //                 const float sx = w / vbW;
+    //                 const float sy = h / vbH;
+    //
+    //                 Matrix3 vbTransform;
+    //                 vbTransform.identity();
+    //                 vbTransform.translate(-minX, -minY);
+    //                 vbTransform.scale(sx, sy);
+    //
+    //                 transformStack.emplace_back(vbTransform);
+    //                 currentTransform.copy(vbTransform);
+    //             }
+    //         }
+    //     }
+    // }
 
     parseNode(node.child("svg"), {"#000", 1, 1, 1, "miter", "butt", 4});
 
@@ -1375,7 +1413,7 @@ SVGLoader::Style SVGLoader::Impl::parseStyle(const pugi::xml_node& node, SVGLoad
                 } else if (key == "stroke-miter-limit") {
                     style.strokeMiterLimit = positive(std::stof(strValue));
                 } else if (key == "visibility") {
-                    style.visibility = strValue == "true";
+                    style.visibility = !(strValue == "hidden" || strValue == "collapse");
                 }
             }
         }
@@ -1390,11 +1428,11 @@ SVGLoader::Style SVGLoader::Impl::parseStyle(const pugi::xml_node& node, SVGLoad
     if (node.attribute("stroke")) {
         style.stroke = node.attribute("stroke").as_string();
     }
-    if (node.attribute("stroke-line-join")) {
-        style.strokeLineJoin = node.attribute("stroke-line-join").as_string();
+    if (node.attribute("stroke-linejoin")) {
+        style.strokeLineJoin = node.attribute("stroke-linejoin").as_string();
     }
-    if (node.attribute("stroke-line-cap")) {
-        style.strokeLineCap = node.attribute("stroke-line-cap").as_string();
+    if (node.attribute("stroke-linecap")) {
+        style.strokeLineCap = node.attribute("stroke-linecap").as_string();
     }
 
     if (node.attribute("opacity")) {
@@ -1414,7 +1452,8 @@ SVGLoader::Style SVGLoader::Impl::parseStyle(const pugi::xml_node& node, SVGLoad
     }
 
     if (node.attribute("visibility")) {
-        style.visibility = node.attribute("visibility").as_bool();
+        const std::string vis = utils::trim(node.attribute("visibility").as_string());
+        style.visibility = !(vis == "hidden" || vis == "collapse");
     }
 
     return style;
