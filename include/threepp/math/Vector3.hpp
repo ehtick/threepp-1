@@ -64,6 +64,8 @@ namespace threepp {
 
         float& operator[](size_t index);
 
+        float operator[](size_t index) const;
+
         Vector3& copy(const Vector3& v);
 
         // Adds v to this vector.

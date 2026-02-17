@@ -76,6 +76,19 @@ float& Vector3::operator[](size_t index) {
     }
 }
 
+float Vector3::operator[](size_t index) const {
+    switch (index) {
+        case 0:
+            return x;
+        case 1:
+            return y;
+        case 2:
+            return z;
+        default:
+            throw std::runtime_error("index out of bound: " + std::to_string(index));
+    }
+}
+
 Vector3& Vector3::copy(const Vector3& v) {
 
     this->x = v.x;

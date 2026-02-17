@@ -30,6 +30,21 @@ float& Vector4::operator[](unsigned int index) {
     }
 }
 
+float Vector4::operator[](unsigned int index) const {
+    switch (index) {
+        case 0:
+            return x;
+        case 1:
+            return y;
+        case 2:
+            return z;
+        case 3:
+            return w;
+        default:
+            throw std::runtime_error("index out of bound: " + std::to_string(index));
+    }
+}
+
 Vector4& Vector4::set(float x, float y, float z, float w) {
 
     this->x = x;

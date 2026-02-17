@@ -44,6 +44,8 @@ namespace threepp {
 
         float& operator[](unsigned int index);
 
+        float operator[](unsigned int index) const;
+
         Vector2& copy(const Vector2& v);
 
         Vector2& add(const Vector2& v);

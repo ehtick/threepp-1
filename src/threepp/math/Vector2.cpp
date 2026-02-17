@@ -57,6 +57,18 @@ float& Vector2::operator[](unsigned int index) {
     }
 }
 
+float Vector2::operator[](unsigned int index) const {
+    if (index >= 2) throw std::runtime_error("index out of bounds: " + std::to_string(index));
+    switch (index) {
+        case 0:
+            return x;
+        case 1:
+            return y;
+        default:
+            throw std::runtime_error("index out of bound: " + std::to_string(index));
+    }
+}
+
 Vector2& Vector2::copy(const Vector2& v) {
 
     this->x = v.x;
