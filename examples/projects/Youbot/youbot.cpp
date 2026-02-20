@@ -1,6 +1,7 @@
 
 #include "threepp/threepp.hpp"
 
+#include "KeyController.hpp"
 #include "Youbot.hpp"
 
 #include <future>
@@ -34,7 +35,7 @@ int main() {
 
     HUD hud(canvas.size());
     FontLoader fontLoader;
-    const auto font = *fontLoader.load("data/fonts/helvetiker_regular.typeface.json");
+    const auto font = *fontLoader.load(std::string(DATA_FOLDER) + "/fonts/helvetiker_regular.typeface.json");
 
     TextGeometry::Options opts(font, 20, 5);
     auto handle = Text2D(opts, "Loading model..");
@@ -43,12 +44,15 @@ int main() {
                             .setNormalizedPosition({0, 1})
                             .setVerticalAlignment(HUD::VerticalAlignment::TOP));
 
+    TaskManager tm;
 
     std::shared_ptr<Youbot> youbot;
+    std::unique_ptr<KeyController> keyController;
     auto future = std::async([&] {
-        youbot = Youbot::create("data/models/collada/youbot.dae");
-        renderer.invokeLater([&] {
-            canvas.addKeyListener(*youbot);
+        youbot = Youbot::create(std::string(DATA_FOLDER) + "/models/collada/youbot.dae");
+        keyController = std::make_unique<KeyController>(*youbot);
+        tm.invokeLater([&] {
+            canvas.addKeyListener(*keyController);
             scene->add(youbot);
             handle.setText("Use WASD keys to steer robot", opts);
         });
@@ -64,12 +68,16 @@ int main() {
 
     Clock clock;
     canvas.animate([&]() {
-        float dt = clock.getDelta();
+        const auto dt = clock.getDelta();
+
+        tm.handleTasks();
 
         renderer.clear();
         renderer.render(*scene, *camera);
         hud.apply(renderer);
 
-        if (youbot) youbot->update(dt);
+        if (youbot) keyController->update(dt);
     });
+
+    future.get();
 }

@@ -26,14 +26,14 @@ int main() {
     scene.add(AmbientLight::create(0x111111));
 
     AssimpLoader loader;
-    auto gltf = loader.load("data/models/gltf/AnimatedMorphSphere/AnimatedMorphSphere.gltf");
+    auto gltf = loader.load(std::string(DATA_FOLDER) + "/models/gltf/AnimatedMorphSphere/AnimatedMorphSphere.gltf");
     scene.add(gltf);
 
     auto pointsMaterial = PointsMaterial::create();
     pointsMaterial->size = 10;
     pointsMaterial->sizeAttenuation = false;
     pointsMaterial->alphaTest = 0.5;
-    pointsMaterial->map = TextureLoader().load("data/textures/sprites/disc.png");
+    pointsMaterial->map = TextureLoader().load(std::string(DATA_FOLDER) + "/textures/sprites/disc.png");
     pointsMaterial->morphTargets = true;
 
     Mesh* mesh;
@@ -43,7 +43,7 @@ int main() {
 
         mesh->material()->as<MaterialWithMorphTargets>()->morphTargets = true;
 
-        auto points = Points::create(mesh->geometry()->shared_from_this(), pointsMaterial);
+        auto points = Points::create(mesh->geometry(), pointsMaterial);
         points->copyMorphTargetInfluences(&mesh->morphTargetInfluences());
         mesh->add(points);
     });
@@ -75,7 +75,7 @@ int main() {
 
         if (influence <= 0 || influence >= 1) {
             sign *= -1;
-            influence = std::clamp(influence, 0.01f, 0.99f); // avoid "locking"
+            influence = std::clamp(influence, 0.01f, 0.99f);// avoid "locking"
         }
 
         renderer.render(scene, camera);

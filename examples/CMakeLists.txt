@@ -4,8 +4,8 @@ include(LibConfig.cmake)
 
 add_subdirectory(libs)
 
-add_example(NAME "demo" TRY_LINK_IMGUI WEB WEB_EMBED
-        "../data/fonts@data/fonts"
+add_example(NAME "demo" LINK_IMGUI WEB WEB_EMBED
+        "${PROJECT_SOURCE_DIR}/data/fonts@data/fonts"
 )
 
 add_subdirectory(animation)
@@ -21,4 +21,6 @@ add_subdirectory(objects)
 add_subdirectory(shaders)
 add_subdirectory(textures)
 
-add_subdirectory(projects)
+if (THREEPP_BUILD_EXAMPLE_PROJECTS)
+    add_subdirectory(projects)
+endif ()

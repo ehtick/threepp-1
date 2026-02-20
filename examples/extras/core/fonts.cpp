@@ -1,23 +1,18 @@
 
+#include "threepp/extras/imgui/ImguiContext.hpp"
 #include "threepp/lights/LightShadow.hpp"
 #include "threepp/loaders/FontLoader.hpp"
 #include "threepp/objects/Text.hpp"
 #include "threepp/threepp.hpp"
 
-#ifdef HAS_IMGUI
-#include "threepp/extras/imgui/ImguiContext.hpp"
-#endif
-
 using namespace threepp;
 
 namespace {
 
-#ifdef HAS_IMGUI
-
-    struct MyUI: public ImguiContext {
+    class MyUI: public ImguiContext {
 
     public:
-        explicit MyUI(void* ptr): ImguiContext(ptr) {}
+        explicit MyUI(const Canvas& canvas): ImguiContext(canvas) {}
 
         [[nodiscard]] bool newSelection() const {
             return lastSelectedIndex != selectedIndex;
@@ -38,8 +33,8 @@ namespace {
             ImGui::Begin("Font");
 
             if (ImGui::BeginCombo("Select Font", names[selectedIndex].c_str())) {
-                for (int i = 0; i < names.size(); ++i) {
-                    const bool isSelected = (selectedIndex == i);
+                for (unsigned i = 0; i < names.size(); ++i) {
+                    const auto isSelected = (selectedIndex == i);
                     if (ImGui::Selectable(names[i].c_str(), isSelected)) {
                         selectedIndex = i;
                     }
@@ -57,8 +52,6 @@ namespace {
                 "gentilis_bold", "gentilis_regular", "helvetiker_bold",
                 "helvetiker_regular", "optimer_bold", "optimer_regular"};
     };
-
-#endif
 
     auto createPlane() {
 
@@ -94,7 +87,7 @@ namespace {
 int main() {
 
     std::string displayText = "threepp!";
-    std::filesystem::path fontPath{"data/fonts"};
+    std::filesystem::path fontPath{std::string(DATA_FOLDER) + "/fonts"};
 
     Canvas canvas("Fonts", {{"aa", 8}});
     GLRenderer renderer(canvas.size());
@@ -143,14 +136,12 @@ int main() {
         renderer.setSize(size);
     });
 
-#ifdef HAS_IMGUI
-    MyUI ui(canvas.windowPtr());
-#endif
+
+    MyUI ui(canvas);
 
     canvas.animate([&]() {
         renderer.render(*scene, *camera);
 
-#ifdef HAS_IMGUI
         ui.render();
 
         if (ui.newSelection()) {
@@ -163,6 +154,5 @@ int main() {
                 textMesh2d->geometry()->center();
             }
         }
-#endif
     });
 }

@@ -11,13 +11,14 @@
 
 namespace threepp::gl {
 
-    struct GLAttributes {
+    class GLAttributes {
 
+    public:
         Buffer createBuffer(BufferAttribute* attribute, unsigned int bufferType);
 
         void updateBuffer(unsigned int buffer, BufferAttribute* attribute, unsigned int bufferType, int bytesPerElement);
 
-        Buffer get(BufferAttribute* attribute);
+        Buffer get(BufferAttribute* attribute) const;
 
         void remove(BufferAttribute* attribute);
 

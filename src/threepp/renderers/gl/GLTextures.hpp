@@ -7,12 +7,8 @@
 #include "threepp/renderers/gl/GLProperties.hpp"
 #include "threepp/renderers/gl/GLState.hpp"
 
-#include "GLUniforms.hpp"
 #include "threepp/renderers/GLRenderTarget.hpp"
-#include "threepp/textures/Texture.hpp"
 
-#include <memory>
-#include <unordered_map>
 
 namespace threepp::gl {
 
@@ -55,9 +51,6 @@ namespace threepp::gl {
         void setupFrameBufferTexture(unsigned int framebuffer, GLRenderTarget* renderTarget, Texture& texture, unsigned int attachment, unsigned int textureTarget);
 
         void setupRenderBufferStorage(unsigned int renderbuffer, GLRenderTarget* renderTarget);
-
-        // Setup resources for a Depth Texture for a FBO (needs an extension)
-        void setupDepthTexture(unsigned int framebuffer, GLRenderTarget* renderTarget);
 
         // Setup GL resources for a non-texture depth buffer
         void setupDepthRenderbuffer(GLRenderTarget* renderTarget);

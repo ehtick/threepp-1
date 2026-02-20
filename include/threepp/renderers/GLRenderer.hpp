@@ -17,8 +17,8 @@
 #include "threepp/renderers/gl/GLShadowMap.hpp"
 #include "threepp/renderers/gl/GLState.hpp"
 
-#include <functional>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace threepp {
@@ -30,14 +30,15 @@ namespace threepp {
     class Material;
     class Texture;
     class GLRenderTarget;
+    class BufferAttribute;
 
     class GLRenderer {
 
     public:
         struct Parameters {
 
-            bool alpha;
-            bool depth;
+            // bool alpha;
+            // bool depth;
             bool premultipliedAlpha;
         };
 
@@ -73,7 +74,7 @@ namespace threepp {
 
         bool checkShaderErrors = false;
 
-        explicit GLRenderer(WindowSize size, const Parameters& parameters = {});
+        explicit GLRenderer(std::pair<int, int> size = {}, const Parameters& parameters = {});
 
         GLRenderer(GLRenderer&&) = delete;
         GLRenderer(const GLRenderer&) = delete;
@@ -88,17 +89,17 @@ namespace threepp {
 
         gl::GLState& state();
 
-        [[nodiscard]] int getTargetPixelRatio() const;
+        [[nodiscard]] float getTargetPixelRatio() const;
 
-        void setPixelRatio(int value);
+        void setPixelRatio(float value);
 
-        [[nodiscard]] WindowSize getSize() const;
+        [[nodiscard]] WindowSize size() const;
 
-        void setSize(WindowSize size);
+        void setSize(const std::pair<int, int>& size);
 
         void getDrawingBufferSize(Vector2& target) const;
 
-        void setDrawingBufferSize(int width, int height, int pixelRatio);
+        void setDrawingBufferSize(const std::pair<int, int>& size, int pixelRatio);
 
         void getCurrentViewport(Vector4& target) const;
 
@@ -108,11 +109,15 @@ namespace threepp {
 
         void setViewport(int x, int y, int width, int height);
 
+        void setViewport(const std::pair<int, int>& pos, const std::pair<int ,int>& size);
+
         void getScissor(Vector4& target);
 
         void setScissor(const Vector4& v);
 
         void setScissor(int x, int y, int width, int height);
+
+        void setScissor(const std::pair<int, int>& pos, const std::pair<int, int>& size);
 
         [[nodiscard]] bool getScissorTest() const;
 
@@ -150,15 +155,22 @@ namespace threepp {
 
         void copyFramebufferToTexture(const Vector2& position, Texture& texture, int level = 0);
 
-        void readPixels(const Vector2& position, const WindowSize& size, Format format, unsigned char* data);
+        [[nodiscard]] std::vector<unsigned char> readRGBPixels();
+
+        void readPixels(const Vector2& position, const std::pair<int, int>& size, Format format, unsigned char* data);
+
+        // Experimental threepp function
+        void copyTextureToImage(Texture& texture);
 
         void resetState();
-
-        void invokeLater(const std::function<void()>& task, float delay = 0);
 
         [[nodiscard]] const gl::GLInfo& info() const;
 
         [[nodiscard]] std::optional<unsigned int> getGlTextureId(Texture& texture) const;
+
+        [[nodiscard]] std::optional<unsigned int> getGlBufferId(BufferAttribute& bufferAttribute) const;
+
+        void writeFramebuffer(const std::filesystem::path& filename);
 
         ~GLRenderer();
 

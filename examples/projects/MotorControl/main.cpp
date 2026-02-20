@@ -134,13 +134,13 @@ int main() {
     });
 
     auto& params = controller.params();
-    ImguiFunctionalContext ui(canvas.windowPtr(), [&] {
+    ImguiFunctionalContext ui(canvas, [&] {
         ImGui::SetNextWindowPos({}, 0, {});
-        ImGui::SetNextWindowSize({}, 0);
+        ImGui::SetNextWindowSize({150*ui.dpiScale(), 0}, 0);
         ImGui::Begin("Motor Controller");
 
         ImGui::Text("Target position");
-        if(ImGui::SliderFloat("deg", &targetPosition, 0, 180)) {
+        if (ImGui::SliderFloat("deg", &targetPosition, 0, 180)) {
             targetText->setText("Target position: " + std::to_string(targetPosition), opts);
         }
         ImGui::Text("PID gains");

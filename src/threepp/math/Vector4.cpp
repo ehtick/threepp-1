@@ -30,6 +30,21 @@ float& Vector4::operator[](unsigned int index) {
     }
 }
 
+float Vector4::operator[](unsigned int index) const {
+    switch (index) {
+        case 0:
+            return x;
+        case 1:
+            return y;
+        case 2:
+            return z;
+        case 3:
+            return w;
+        default:
+            throw std::runtime_error("index out of bound: " + std::to_string(index));
+    }
+}
+
 Vector4& Vector4::set(float x, float y, float z, float w) {
 
     this->x = x;
@@ -133,6 +148,17 @@ Vector4& Vector4::applyMatrix4(const Matrix4& m) {
 Vector4& Vector4::divideScalar(float scalar) {
 
     return this->multiplyScalar(1.f / scalar);
+}
+
+Vector4& Vector4::setFromMatrixPosition(const Matrix4& m) {
+    const auto& e = m.elements;
+
+    this->x = e[12];
+    this->y = e[13];
+    this->z = e[14];
+    this->w = e[15];
+
+    return *this;
 }
 
 Vector4& Vector4::floor() {

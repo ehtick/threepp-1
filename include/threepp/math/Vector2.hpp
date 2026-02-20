@@ -4,7 +4,6 @@
 #define THREEPP_VECTOR2_HPP
 
 #include <ostream>
-#include <string>
 
 namespace threepp {
 
@@ -44,6 +43,8 @@ namespace threepp {
         Vector2& setY(float value);
 
         float& operator[](unsigned int index);
+
+        float operator[](unsigned int index) const;
 
         Vector2& copy(const Vector2& v);
 
@@ -171,11 +172,23 @@ namespace threepp {
             array[offset + 1] = this->y;
         }
 
+        operator std::pair<int, int>() const;
+
+        operator std::pair<float, float>() const;
+
         friend std::ostream& operator<<(std::ostream& os, const Vector2& v) {
             os << "Vector2(x=" << v.x << ", y=" << v.y << ")";
             return os;
         }
     };
+
+    // Implementing get function template
+    template<std::size_t N>
+    auto get(const Vector2& p) {
+        if constexpr (N == 0) return p.x;
+        else if constexpr (N == 1)
+            return p.y;
+    }
 
 }// namespace threepp
 

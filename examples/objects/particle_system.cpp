@@ -1,10 +1,7 @@
 
+#include "threepp/extras/imgui/ImguiContext.hpp"
 #include "threepp/objects/ParticleSystem.hpp"
 #include "threepp/threepp.hpp"
-
-#if HAS_IMGUI
-#include "threepp/extras/imgui/ImguiContext.hpp"
-#endif
 
 using namespace threepp;
 
@@ -44,8 +41,6 @@ int main() {
         renderer.setSize(size);
     });
 
-#if HAS_IMGUI
-
     int selectedIndex = 0;
     std::vector<std::pair<std::string, std::function<void(ParticleSystem::Settings&)>>> demos{
             {"fountain", initFountain},
@@ -53,9 +48,9 @@ int main() {
             {"fireball", initFireball},
             {"firework", initFirework}};
 
-    ImguiFunctionalContext ui(canvas.windowPtr(), [&] {
+    ImguiFunctionalContext ui(canvas, [&] {
         ImGui::SetNextWindowPos({0, 0}, 0, {0, 0});
-        ImGui::SetNextWindowSize({230, 0}, 0);
+        ImGui::SetNextWindowSize({0, 0}, 0);
         ImGui::Begin("Make selection");
         if (ImGui::BeginCombo("Demos", demos[selectedIndex].first.c_str())) {
             for (int index = 0; index < demos.size(); ++index) {
@@ -71,18 +66,16 @@ int main() {
         }
         ImGui::End();
     });
-#endif
+
 
     Clock clock;
     canvas.animate([&]() {
-        float dt = clock.getDelta();
+        const auto dt = clock.getDelta();
 
         engine.update(dt * 0.5f);
         renderer.render(scene, camera);
 
-#if HAS_IMGUI
         ui.render();
-#endif
     });
 }
 
@@ -114,7 +107,7 @@ void initFountain(ParticleSystem::Settings& settings) {
             .setSizeTween({0, 1}, {0.1, 2});
 
     TextureLoader tl;
-    settings.texture = tl.load("data/textures/star.png");
+    settings.texture = tl.load(std::string(DATA_FOLDER) + "/textures/star.png");
 }
 
 void initSmoke(ParticleSystem::Settings& settings) {
@@ -144,7 +137,7 @@ void initSmoke(ParticleSystem::Settings& settings) {
             .setSizeTween({0, 1}, {1, 10});
 
     TextureLoader tl;
-    settings.texture = tl.load("data/textures/smokeparticle.png");
+    settings.texture = tl.load(std::string(DATA_FOLDER) + "/textures/smokeparticle.png");
 }
 
 void initFireball(ParticleSystem::Settings& settings) {
@@ -170,7 +163,7 @@ void initFireball(ParticleSystem::Settings& settings) {
             .setSizeTween({0, 1}, {0.1, 15});
 
     TextureLoader tl;
-    settings.texture = tl.load("data/textures/smokeparticle.png");
+    settings.texture = tl.load(std::string(DATA_FOLDER) + "/textures/smokeparticle.png");
 }
 
 void initFirework(ParticleSystem::Settings& settings) {
@@ -199,5 +192,5 @@ void initFirework(ParticleSystem::Settings& settings) {
             .setSizeTween({0.3, 0.6, 1.3}, {0.5, 4, 0.1});
 
     TextureLoader tl;
-    settings.texture = tl.load("data/textures/spark.png");
+    settings.texture = tl.load(std::string(DATA_FOLDER) + "/textures/spark.png");
 }

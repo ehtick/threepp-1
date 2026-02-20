@@ -3,16 +3,17 @@
 #define THREEPP_MATHUTILS_HPP
 
 #include <limits>
+#include <numbers>
 #include <string>
 
 namespace threepp::math {
 
-    const float LN2 = 0.6931471805599453094172321214581765680755001343602552541206800094;
-    const float PI = 3.14159265358979323846f;// 2.f * std::acos(0.f)
-    const float TWO_PI = 6.28318530718f;
+    constexpr float LN2 = std::numbers::ln2_v<float>;
+    constexpr float PI = std::numbers::pi_v<float>;
+    constexpr float TWO_PI = PI * 2.f;
 
-    const float DEG2RAD = PI / 180.f;
-    const float RAD2DEG = 180.f / PI;
+    constexpr float DEG2RAD = PI / 180.f;
+    constexpr float RAD2DEG = 180.f / PI;
 
     // Generate a UUID (universally unique identifier).
     std::string generateUUID();
@@ -35,10 +36,16 @@ namespace threepp::math {
     float damp(float x, float y, float lambda, float dt);
 
     // Converts degrees to radians.
-    float degToRad(float degrees);
+    constexpr inline float degToRad(float degrees) {
+
+        return degrees * DEG2RAD;
+    }
 
     // Converts radians to degrees.
-    float radToDeg(float radians);
+    constexpr inline float radToDeg(float radians) {
+
+        return radians * RAD2DEG;
+    }
 
     // Random integer in the interval [low, high].
     int randInt(int low, int high);

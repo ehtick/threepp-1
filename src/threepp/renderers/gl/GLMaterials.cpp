@@ -32,7 +32,7 @@ struct GLMaterials::Impl {
         auto metalnessMaterial = dynamic_cast<MaterialWithMetalness*>(material);
         auto alphaMaterial = dynamic_cast<MaterialWithAlphaMap*>(material);
         auto emissiveMaterial = dynamic_cast<MaterialWithEmissive*>(material);
-        auto spriteMaterial = dynamic_cast<SpriteMaterial*>(material);
+        // auto spriteMaterial = dynamic_cast<SpriteMaterial*>(material);
         // TODO clearcoat
 
         auto aoMaterial = dynamic_cast<MaterialWithAoMap*>(material);
@@ -110,26 +110,26 @@ struct GLMaterials::Impl {
         // 12. clearcoat roughnessMap map
 
 
-        std::shared_ptr<Texture> uvScaleMap = nullptr;
+        Texture* uvScaleMap = nullptr;
 
         if (mapMaterial && mapMaterial->map) {
-            uvScaleMap = mapMaterial->map;
+            uvScaleMap = mapMaterial->map.get();
         } else if (specularMaterial && specularMaterial->specularMap) {
-            uvScaleMap = specularMaterial->specularMap;
+            uvScaleMap = specularMaterial->specularMap.get();
         } else if (displacementMaterial && displacementMaterial->displacementMap) {
-            uvScaleMap = displacementMaterial->displacementMap;
+            uvScaleMap = displacementMaterial->displacementMap.get();
         } else if (normalMaterial && normalMaterial->normalMap) {
-            uvScaleMap = normalMaterial->normalMap;
+            uvScaleMap = normalMaterial->normalMap.get();
         } else if (bumpMaterial && bumpMaterial->bumpMap) {
-            uvScaleMap = bumpMaterial->bumpMap;
+            uvScaleMap = bumpMaterial->bumpMap.get();
         } else if (roughnessMaterial && roughnessMaterial->roughnessMap) {
-            uvScaleMap = roughnessMaterial->roughnessMap;
+            uvScaleMap = roughnessMaterial->roughnessMap.get();
         } else if (metalnessMaterial && metalnessMaterial->metalnessMap) {
-            uvScaleMap = metalnessMaterial->metalnessMap;
+            uvScaleMap = metalnessMaterial->metalnessMap.get();
         } else if (alphaMaterial && alphaMaterial->alphaMap) {
-            uvScaleMap = alphaMaterial->alphaMap;
+            uvScaleMap = alphaMaterial->alphaMap.get();
         } else if (emissiveMaterial && emissiveMaterial->emissiveMap) {
-            uvScaleMap = emissiveMaterial->emissiveMap;
+            uvScaleMap = emissiveMaterial->emissiveMap.get();
         }
         // TODO clearcoat
 
@@ -372,11 +372,11 @@ struct GLMaterials::Impl {
         uniforms.at("opacity").value<float>() = material->opacity;
     }
 
-    void refreshUniformsPoints(UniformMap& uniforms, PointsMaterial* material, int pixelRatio, float height) {
+    void refreshUniformsPoints(UniformMap& uniforms, PointsMaterial* material, float pixelRatio, float height) {
 
         uniforms.at("diffuse").value<Color>().copy(material->color);
         uniforms.at("opacity").value<float>() = material->opacity;
-        uniforms.at("size").value<float>() = material->size * static_cast<float>(pixelRatio);
+        uniforms.at("size").value<float>() = material->size * pixelRatio;
         uniforms.at("scale").value<float>() = height * 0.5f;
 
         if (material->map) {
@@ -463,8 +463,8 @@ struct GLMaterials::Impl {
             auto& f = std::get<Fog>(fog);
             uniforms.at("fogColor").value<Color>().copy(f.color);
 
-            uniforms.at("fogNear").value<float>() = f.near;
-            uniforms.at("fogFar").value<float>() = f.far;
+            uniforms.at("fogNear").value<float>() = f.nearPlane;
+            uniforms.at("fogFar").value<float>() = f.farPlane;
         } else {
 
             auto& f = std::get<FogExp2>(fog);
@@ -474,7 +474,7 @@ struct GLMaterials::Impl {
         }
     }
 
-    void refreshMaterialUniforms(UniformMap& uniforms, Material* material, int pixelRatio, int height) {
+    void refreshMaterialUniforms(UniformMap& uniforms, Material* material, float pixelRatio, int height) {
 
         const auto type = material->type();
 
@@ -536,7 +536,7 @@ struct GLMaterials::Impl {
 
         } else if (type == "ShadowMaterial") {
 
-            auto m = material->as<ShadowMaterial>();
+            const auto m = material->as<ShadowMaterial>();
             uniforms.at("color").value<Color>().copy(m->color);
             uniforms.at("opacity").value<float>() = material->opacity;
 
@@ -559,7 +559,7 @@ void GLMaterials::refreshFogUniforms(UniformMap& uniforms, FogVariant& fog) {
     return pimpl_->refreshFogUniforms(uniforms, fog);
 }
 
-void GLMaterials::refreshMaterialUniforms(UniformMap& uniforms, Material* material, int pixelRatio, int height) {
+void GLMaterials::refreshMaterialUniforms(UniformMap& uniforms, Material* material, float pixelRatio, int height) {
 
     pimpl_->refreshMaterialUniforms(uniforms, material, pixelRatio, height);
 }

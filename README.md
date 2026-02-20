@@ -1,6 +1,6 @@
 ## threepp (Work in progress)
 
-Cross-platform C++17 port of the popular Javascript 3D library [three.js](https://github.com/mrdoob/three.js/) [r129](https://github.com/mrdoob/three.js/tree/r129).
+Cross-platform C++20 port of the popular Javascript 3D library [three.js](https://github.com/mrdoob/three.js/) [r129](https://github.com/mrdoob/three.js/tree/r129).
 
 
 #### Current state of the project
@@ -20,7 +20,8 @@ however much remains to be done..
 * Controls [Orbit, Fly, Drag]
 * Water and Sky shaders
 * Built-in text rendering and font loading [typeface.json, TTF]
-* Loaders [Binary STL, OBJ/MTL, SVG]
+* Loaders [Binary STL, OBJ/MTL, SVG, URDF]
+* Animations (limited to transforms)
 * Basic Audio support using [miniaudio](https://miniaud.io/docs/manual/index.html)
 * Generic model loader based on [Assimp](https://github.com/assimp/assimp)
 * Easy integration with [Dear ImGui](https://github.com/ocornut/imgui)
@@ -38,6 +39,9 @@ Because fun.
 
 Use CMake for project configuration and building.
 
+Do note that you may also use a system installation of GLFW3 if you want or have issues with the bundled setup by passing
+`-DTHREEPP_USE_EXTERNAL_GLFW=ON` to CMake.
+
 ###### Windows
 ```shell
 cmake . -A x64 -B build -DCMAKE_BUILD_TYPE="Release"
@@ -50,40 +54,20 @@ cmake . -B build -DCMAKE_BUILD_TYPE="Release"
 cmake --build build
 ```
 
-However, some of the examples (and headers) require additional dependencies. 
-To make use of all features and to enable/build all examples, the use of [vcpkg](https://vcpkg.io/en/index.html) is encouraged.
-
-#### vcpkg (using manifest mode)
-
-Call CMake with `-DCMAKE_TOOLCHAIN_FILE=[path to vcpkg]/scripts/buildsystems/vcpkg.cmake`
-
-Add optional features by listing them with `-DVCPKG_MANIFEST_FEATURES=feature1;feature2`
-
-See [vcpkg.json](vcpkg.json) for available features.
-
-Note, however, that under MinGW you'll need to specify the vcpkg triplet:
-```shell
--DVCPKG_TARGET_TRIPLET=x64-mingw-[static|dynamic]  # choose either `static` or `dynamic`.
--DVCPKG_HOST_TRIPLET=x64-mingw-[static|dynamic]    # <-- needed only if MSVC cannot be found. 
-```
-
 ##### Building examples with Emscripten
 
 Pass to CMake:
 ```shell
 -DCMAKE_TOOLCHAIN_FILE="[path to emscripten]\emsdk\upstream\emscripten\cmake\Modules\Platform\Emscripten.cmake"
 ```
-When using vcpkg, however, do:
-```shell
--DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="[path to emscripten]\emsdk\upstream\emscripten\cmake\Modules\Platform\Emscripten.cmake"
-```
+
 This will generate .html versions of a subset of the examples to be loaded in a browser.
 
 
 ##### Optional downstream dependencies
 
 When consuming `threepp` in your own application, 
-some headers will require additional dependencies in order to compile.
+some headers will require additional dependencies to compile.
 
 | **Header**   | **Dependency** | **Description**                               |
 |--------------|----------------|-----------------------------------------------|
@@ -197,12 +181,6 @@ This is the preferred approach, as it enables users to update the targeted three
 An example is provided [here](tests/threepp_fetchcontent_test).
 See also [this demo](https://github.com/markaren/threepp_wxwidgets), which additionally uses WxWidgets as the Window system.
 
-#### vcpkg
-
-`threepp` is available for use with vcpkg through a custom vcpkg-registry.
-However, this vcpkg port is cumbersome to maintain and is not so often updated, and support may be discontinued in the future.
-
-An example is provided [here](tests/threepp_vcpkg_test).
 
 ### Screenshots
 ![Fonts](doc/screenshots/fonts.png)
@@ -210,6 +188,7 @@ An example is provided [here](tests/threepp_vcpkg_test).
 ![Shadows](doc/screenshots/Shadows.PNG)
 ![FlyControls](doc/screenshots/fly.PNG)
 ![Crane](doc/screenshots/crane.png)
+![Optimization](doc/screenshots/Optimization.PNG)
 ![Physics](doc/screenshots/instanced_physics.PNG)
 ![Water](doc/screenshots/OlympicOctopus.PNG)
 ![MotorController](doc/screenshots/motor_controller.PNG)

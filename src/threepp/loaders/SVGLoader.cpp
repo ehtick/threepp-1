@@ -3,10 +3,12 @@
 
 #include "threepp/extras/ShapeUtils.hpp"
 #include "threepp/loaders/svg/SVGFunctions.hpp"
+#include "threepp/utils/StringUtils.hpp"
 
 #include "pugixml.hpp"
 
 #include <algorithm>
+
 
 using namespace threepp;
 
@@ -46,15 +48,15 @@ struct SVGLoader::Impl {
 
     SVGLoader* scope;
 
-    std::vector<SVGLoader::SVGData> paths;
-    std::unordered_map<std::string, std::string> styleSheets;
+    std::vector<SVGData> paths;
+    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> styleSheets;
 
     std::vector<Matrix3> transformStack;
     Matrix3 currentTransform;
 
     explicit Impl(SVGLoader& scope): scope(&scope) {}
 
-    std::vector<SVGLoader::SVGData> load(const pugi::xml_node& node);
+    std::vector<SVGData> load(const pugi::xml_node& node);
 
     [[nodiscard]] float clamp(float v) const {
 
@@ -92,6 +94,10 @@ struct SVGLoader::Impl {
 
     [[nodiscard]] ShapePath parseLineNode(const pugi::xml_node& node) const;
 
+    void parseStyleSheet(const pugi::xml_node& node);
+
+    void applyStyleSheetRules(const std::string& selector, Style& style) const;
+
     [[nodiscard]] Style parseStyle(const pugi::xml_node& node, Style style) const;
 };
 
@@ -100,7 +106,7 @@ std::vector<SVGLoader::SVGData> SVGLoader::load(const std::filesystem::path& fil
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_file(filePath.string().c_str());
     if (!result) {
-        throw std::runtime_error("Unable to parse modelDescription.xml");
+        throw std::runtime_error("Unable to load XML:  " + filePath.string());
     }
 
     return pimpl_->load(doc);
@@ -111,7 +117,7 @@ std::vector<SVGLoader::SVGData> SVGLoader::parse(const std::string& text) {
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_string(text.c_str());
     if (!result) {
-        throw std::runtime_error("Unable to parse modelDescription.xml");
+        throw std::runtime_error("Unable to parse XML content");
     }
 
     return pimpl_->load(doc);
@@ -121,14 +127,14 @@ std::vector<Shape> SVGLoader::createShapes(const SVGData& data) {
 
     const auto& shapePath = data.path;
 
-    const auto BIGNUMBER = 999999999.f;
+    constexpr auto BIGNUMBER = 999999999.f;
 
     auto scanlineMinX = BIGNUMBER;
     auto scanlineMaxX = -BIGNUMBER;
 
     std::vector<svg::SimplePath> simplePaths;
     const auto& subPaths = shapePath.subPaths;
-    std::transform(subPaths.begin(), subPaths.end(), std::back_inserter(simplePaths), [&](const auto& p) {
+    std::ranges::transform(subPaths, std::back_inserter(simplePaths), [&](const auto& p) {
         const auto& points = p->getPoints();
         float maxY = -BIGNUMBER;
         float minY = BIGNUMBER;
@@ -185,13 +191,13 @@ std::vector<Shape> SVGLoader::createShapes(const SVGData& data) {
         }
     }
 
-    for (int identifier = 0; identifier < simplePaths.size(); identifier++) {
+    for (unsigned identifier = 0; identifier < simplePaths.size(); identifier++) {
 
         simplePaths[identifier].identifier = identifier;
     }
 
     std::vector<std::optional<svg::AHole>> isAHole;
-    std::transform(simplePaths.begin(), simplePaths.end(), std::back_inserter(isAHole), [&](const auto& p) {
+    std::ranges::transform(simplePaths, std::back_inserter(isAHole), [&](const auto& p) {
         return isHoleTo(p, simplePaths, scanlineMinX, scanlineMaxX, data.style.fillRule);
     });
 
@@ -863,13 +869,115 @@ std::vector<SVGLoader::SVGData> SVGLoader::Impl::load(const pugi::xml_node& node
     paths.clear();
     styleSheets.clear();
     transformStack.clear();
+    currentTransform.identity();
+
+    pugi::xml_node svgNode = node;
+    if (std::string(svgNode.name()) != "svg") {
+        svgNode = node.child("svg");
+    }
+
+    // // Apply viewBox / width/height transform if present
+    // const auto svgNode = node.child("svg");
+    // if (svgNode) {
+    //
+    //     if (svgNode.attribute("viewBox")) {
+    //
+    //         // parse viewBox: "minX minY width height"
+    //         const auto nums = svg::parseFloats(svgNode.attribute("viewBox").value());
+    //         if (nums.size() == 4) {
+    //
+    //             const float minX = nums[0];
+    //             const float minY = nums[1];
+    //             const float vbW = nums[2];
+    //             const float vbH = nums[3];
+    //
+    //             // width/height may have units; use parseFloatWithUnits
+    //             float w = vbW;
+    //             float h = vbH;
+    //             if (svgNode.attribute("width")) w = parseFloatWithUnits(svgNode.attribute("width").value());
+    //             if (svgNode.attribute("height")) h = parseFloatWithUnits(svgNode.attribute("height").value());
+    //
+    //             if (vbW != 0 && vbH != 0) {
+    //                 const float sx = w / vbW;
+    //                 const float sy = h / vbH;
+    //
+    //                 Matrix3 vbTransform;
+    //                 vbTransform.identity();
+    //                 vbTransform.translate(-minX, -minY);
+    //                 vbTransform.scale(sx, sy);
+    //
+    //                 transformStack.emplace_back(vbTransform);
+    //                 currentTransform.copy(vbTransform);
+    //             }
+    //         }
+    //     }
+    // }
 
     parseNode(node.child("svg"), {"#000", 1, 1, 1, "miter", "butt", 4});
 
     return paths;
 }
 
-void SVGLoader::Impl::parseNode(const pugi::xml_node& node, SVGLoader::Style style) {
+void SVGLoader::Impl::parseStyleSheet(const pugi::xml_node& node) {
+
+    std::string cssText = node.child_value();
+    static const std::regex ruleRegex(R"(([\.\#]?[A-Za-z0-9_-]+)\s*\{([^}]*)\})", std::regex::icase);
+
+    for (std::sregex_iterator it(cssText.begin(), cssText.end(), ruleRegex), end; it != end; ++it) {
+        const std::smatch& m = *it;
+        std::string selector = utils::trim(m[1].str());
+        std::string body = m[2].str();
+
+        auto components = utils::split(body, ';');
+        for (const auto& comp : components) {
+            const auto decl = utils::split(utils::trim(comp), ':');
+            if (decl.size() == 2) {
+                const std::string key = utils::trim(decl[0]);
+                const std::string val = utils::trim(decl[1]);
+                if (!key.empty() && !val.empty()) {
+                    styleSheets[selector][key] = val;
+                }
+            }
+        }
+    }
+}
+
+void SVGLoader::Impl::applyStyleSheetRules(const std::string& selector, Style& style) const {
+
+    const auto it = styleSheets.find(selector);
+    if (it == styleSheets.end()) return;
+
+    for (const auto& kv : it->second) {
+        const auto& key = kv.first;
+        const auto& val = kv.second;
+
+        if (key == "fill") {
+            style.fill = val;
+        } else if (key == "fill-rule") {
+            style.fillRule = val;
+        } else if (key == "fill-opacity") {
+            style.fillOpacity = clamp(std::stof(val));
+        } else if (key == "stroke") {
+            style.stroke = val;
+        } else if (key == "stroke-opacity") {
+            style.strokeOpacity = clamp(std::stof(val));
+        } else if (key == "stroke-linejoin") {
+            style.strokeLineJoin = val;
+        } else if (key == "stroke-linecap") {
+            style.strokeLineCap = val;
+        } else if (key == "stroke-width") {
+            style.strokeWidth = positive(parseFloatWithUnits(val));
+        } else if (key == "stroke-miter-limit") {
+            style.strokeMiterLimit = positive(parseFloatWithUnits(val));
+        } else if (key == "visibility") {
+            style.visibility = !(val == "hidden" || val == "collapse");
+        } else if (key == "opacity") {
+            style.opacity = clamp(std::stof(val));
+        }
+    }
+}
+
+void SVGLoader::Impl::parseNode(const pugi::xml_node& node, Style style) {
 
     if (node.type() != pugi::xml_node_type::node_element) return;
 
@@ -882,9 +990,12 @@ void SVGLoader::Impl::parseNode(const pugi::xml_node& node, SVGLoader::Style sty
     std::string nodeName{node.name()};
     if (nodeName == "svg") {
 
+        style = parseStyle(node, style);
+
     } else if (nodeName == "style") {
 
-        style = parseStyle(node, style);
+        parseStyleSheet(node);
+        traverseChildNodes = false;
 
     } else if (nodeName == "g") {
 
@@ -929,7 +1040,7 @@ void SVGLoader::Impl::parseNode(const pugi::xml_node& node, SVGLoader::Style sty
 
     } else if (nodeName == "defs") {
 
-        traverseChildNodes = false;
+        traverseChildNodes = true;
 
     } else if (nodeName == "use") {
 
@@ -945,7 +1056,7 @@ void SVGLoader::Impl::parseNode(const pugi::xml_node& node, SVGLoader::Style sty
 
         svg::transformPath(*path, currentTransform);
 
-        paths.emplace_back(SVGLoader::SVGData{style, *path});
+        paths.emplace_back(SVGData{style, *path});
     }
 
     if (traverseChildNodes) {
@@ -1000,13 +1111,13 @@ float SVGLoader::Impl::parseFloatWithUnits(const std::string& str) const {
 
     std::string theUnit = "px";
 
-    float value;
+    float value{0};
 
     if (!utils::isNumber(str)) {
 
         for (unsigned i = 0, n = units.size(); i < n; i++) {
 
-            const auto u = units[i];
+            const auto& u = units[i];
 
             if (utils::endsWith(str, u)) {
 
@@ -1048,7 +1159,7 @@ Matrix3 SVGLoader::Impl::parseNodeTransform(const pugi::xml_node& node) const {
 
     Matrix3 transform;
     Matrix3 currentTransform;
-    Matrix3 tempTransform0;
+    // Matrix3 tempTransform0;
     Matrix3 tempTransform1;
     Matrix3 tempTransform2;
     Matrix3 tempTransform3;
@@ -1063,9 +1174,9 @@ Matrix3 SVGLoader::Impl::parseNodeTransform(const pugi::xml_node& node) const {
 
     if (node.attribute("transform")) {
 
-        auto transformsTexts = utils::split(node.attribute("transform").value(), ')');
+        const auto transformsTexts = utils::split(node.attribute("transform").value(), ')');
 
-        for (int tIndex = transformsTexts.size() - 1; tIndex >= 0; tIndex--) {
+        for (int tIndex = static_cast<int>(transformsTexts.size()) - 1; tIndex >= 0; tIndex--) {
 
             const auto transformText = utils::trim(transformsTexts[tIndex]);
 
@@ -1283,7 +1394,7 @@ ShapePath SVGLoader::Impl::parseCircleNode(const pugi::xml_node& node) const {
 
     const auto x = parseFloatWithUnits(node.attribute("cx").as_string("0"));
     const auto y = parseFloatWithUnits(node.attribute("cy").as_string("0"));
-    const auto r = parseFloatWithUnits(node.attribute("x").as_string("0"));
+    const auto r = parseFloatWithUnits(node.attribute("r").as_string("0"));
 
     auto subpath = std::make_shared<Path>();
     subpath->absarc(x, y, r, 0, math::PI * 2);
@@ -1325,23 +1436,26 @@ ShapePath SVGLoader::Impl::parseLineNode(const pugi::xml_node& node) const {
     return path;
 }
 
-SVGLoader::Style SVGLoader::Impl::parseStyle(const pugi::xml_node& node, SVGLoader::Style style) const {
+SVGLoader::Style SVGLoader::Impl::parseStyle(const pugi::xml_node& node, Style style) const {
 
     std::unordered_map<std::string, std::string> stylesheetStyles;
 
     if (node.attribute("class")) {
-
-        //                static std::regex r("\\s");
-        //
-        //                auto classSelectors = regexSplit(node.attribute("class").value(), r);
-        //                for (auto& str : classSelectors) {
-        //                    utils::trimInplace(str);
-        //                }
+        std::string classAttr = node.attribute("class").as_string();
+        const auto classes = utils::split(classAttr, ' ');
+        for (auto& c : classes) {
+            const auto cls = utils::trim(c);
+            if (!cls.empty()) {
+                const std::string selector = "." + cls;
+                applyStyleSheetRules(selector, style);
+            }
+        }
     }
 
     if (node.attribute("id")) {
         style.id = node.attribute("id").value();
-        //                    stylesheetStyles = Object.assign( stylesheetStyles, stylesheets[ '#' + node.getAttribute( 'id' ) ] );
+        const std::string selector = std::string("#") + utils::trim(node.attribute("id").as_string());
+        applyStyleSheetRules(selector, style);
     }
 
     if (node.attribute("style")) {
@@ -1373,7 +1487,7 @@ SVGLoader::Style SVGLoader::Impl::parseStyle(const pugi::xml_node& node, SVGLoad
                 } else if (key == "stroke-miter-limit") {
                     style.strokeMiterLimit = positive(std::stof(strValue));
                 } else if (key == "visibility") {
-                    style.visibility = strValue == "true";
+                    style.visibility = !(strValue == "hidden" || strValue == "collapse");
                 }
             }
         }
@@ -1388,11 +1502,11 @@ SVGLoader::Style SVGLoader::Impl::parseStyle(const pugi::xml_node& node, SVGLoad
     if (node.attribute("stroke")) {
         style.stroke = node.attribute("stroke").as_string();
     }
-    if (node.attribute("stroke-line-join")) {
-        style.strokeLineJoin = node.attribute("stroke-line-join").as_string();
+    if (node.attribute("stroke-linejoin")) {
+        style.strokeLineJoin = node.attribute("stroke-linejoin").as_string();
     }
-    if (node.attribute("stroke-line-cap")) {
-        style.strokeLineCap = node.attribute("stroke-line-cap").as_string();
+    if (node.attribute("stroke-linecap")) {
+        style.strokeLineCap = node.attribute("stroke-linecap").as_string();
     }
 
     if (node.attribute("opacity")) {
@@ -1412,7 +1526,8 @@ SVGLoader::Style SVGLoader::Impl::parseStyle(const pugi::xml_node& node, SVGLoad
     }
 
     if (node.attribute("visibility")) {
-        style.visibility = node.attribute("visibility").as_bool();
+        const std::string vis = utils::trim(node.attribute("visibility").as_string());
+        style.visibility = !(vis == "hidden" || vis == "collapse");
     }
 
     return style;
@@ -1433,7 +1548,7 @@ ShapePath parsePathNode(const pugi::xml_node& node) {
 
     const static std::regex r{"[a-df-z][^a-df-z]*", std::regex::icase};
 
-    for (std::sregex_iterator i = std::sregex_iterator(d.begin(), d.end(), r);
+    for (auto i = std::sregex_iterator(d.begin(), d.end(), r);
          i != std::sregex_iterator(); ++i) {
 
         const std::smatch& m = *i;

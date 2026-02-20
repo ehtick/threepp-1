@@ -26,6 +26,8 @@ namespace threepp {
 
         float& operator[](unsigned int index);
 
+        float operator[](unsigned int index) const;
+
         Vector4& set(float x, float y, float z, float w);
 
         Vector4& setScalar(float value);
@@ -47,6 +49,8 @@ namespace threepp {
         Vector4& applyMatrix4(const Matrix4& m);
 
         Vector4& divideScalar(float scalar);
+
+        Vector4& setFromMatrixPosition(const Matrix4& m);
 
         Vector4& floor();
 
@@ -103,6 +107,18 @@ namespace threepp {
             return os;
         }
     };
+
+    // Implementing get function template
+    template<std::size_t N>
+    auto get(const Vector4& p) {
+        if constexpr (N == 0) return p.x;
+        else if constexpr (N == 1)
+            return p.y;
+        else if constexpr (N == 2)
+            return p.z;
+        else if constexpr (N == 3)
+            return p.w;
+    }
 
 }// namespace threepp
 

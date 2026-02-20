@@ -5,6 +5,17 @@ set(publicHeaders
         "threepp/constants.hpp"
         "threepp/threepp.hpp"
 
+        "threepp/animation/AnimationAction.hpp"
+        "threepp/animation/AnimationClip.hpp"
+        "threepp/animation/AnimationMixer.hpp"
+        "threepp/animation/AnimationUtils.hpp"
+        "threepp/animation/KeyframeTrack.hpp"
+
+        "threepp/animation/tracks/VectorKeyframeTrack.hpp"
+        "threepp/animation/tracks/QuaternionKeyframeTrack.hpp"
+
+        "threepp/canvas/Canvas.hpp"
+        "threepp/canvas/Monitor.hpp"
         "threepp/canvas/WindowSize.hpp"
 
         "threepp/controls/DragControls.hpp"
@@ -96,11 +107,13 @@ set(publicHeaders
         "threepp/loaders/loaders.hpp"
         "threepp/loaders/AssimpLoader.hpp"
         "threepp/loaders/CubeTextureLoader.hpp"
+        "threepp/loaders/FontLoader.hpp"
         "threepp/loaders/MTLLoader.hpp"
         "threepp/loaders/ImageLoader.hpp"
         "threepp/loaders/OBJLoader.hpp"
         "threepp/loaders/STLLoader.hpp"
         "threepp/loaders/TextureLoader.hpp"
+        "threepp/loaders/URDFLoader.hpp"
 
         "threepp/materials/Material.hpp"
         "threepp/materials/MeshBasicMaterial.hpp"
@@ -126,6 +139,7 @@ set(publicHeaders
         "threepp/math/float_view.hpp"
         "threepp/math/Frustum.hpp"
         "threepp/math/ImprovedNoise.hpp"
+        "threepp/math/Interpolant.hpp"
         "threepp/math/Line3.hpp"
         "threepp/math/Lut.hpp"
         "threepp/math/MathUtils.hpp"
@@ -161,17 +175,19 @@ set(publicHeaders
         "threepp/objects/Points.hpp"
         "threepp/objects/Reflector.hpp"
         "threepp/objects/Text.hpp"
+        "threepp/objects/TextNode.hpp"
         "threepp/objects/Water.hpp"
 
         "threepp/textures/CubeTexture.hpp"
         "threepp/textures/DataTexture.hpp"
         "threepp/textures/DataTexture3D.hpp"
-        "threepp/textures/DepthTexture.hpp"
         "threepp/textures/Image.hpp"
         "threepp/textures/Texture.hpp"
 
         "threepp/utils/BufferGeometryUtils.hpp"
+        "threepp/utils/ImageUtils.hpp"
         "threepp/utils/StringUtils.hpp"
+        "threepp/utils/TaskManager.hpp"
 
         "threepp/lights/lights.hpp"
         "threepp/lights/Light.hpp"
@@ -206,6 +222,9 @@ endforeach ()
 
 set(privateHeaders
 
+        "threepp/animation/PropertyBinding.hpp"
+        "threepp/animation/PropertyMixer.hpp"
+
         "threepp/materials/MeshDistanceMaterial.hpp"
 
         "threepp/renderers/GLCubeRenderTarget.hpp"
@@ -231,14 +250,22 @@ set(privateHeaders
         "threepp/renderers/gl/GLTextures.hpp"
         "threepp/renderers/gl/GLUniforms.hpp"
         "threepp/renderers/gl/GLUtils.hpp"
+        "threepp/renderers/gl/ProgramParameters.hpp"
         "threepp/renderers/gl/UniformUtils.hpp"
 
         "threepp/utils/RegexUtil.hpp"
-        "threepp/utils/TaskManager.hpp"
-
 )
 
 set(sources
+
+        "external/pugixml/pugixml.cpp"
+
+        "threepp/animation/AnimationAction.cpp"
+        "threepp/animation/AnimationClip.cpp"
+        "threepp/animation/AnimationMixer.cpp"
+        "threepp/animation/KeyframeTrack.cpp"
+        "threepp/animation/PropertyBinding.cpp"
+        "threepp/animation/PropertyMixer.cpp"
 
         "threepp/cameras/Camera.cpp"
         "threepp/cameras/PerspectiveCamera.cpp"
@@ -318,6 +345,7 @@ set(sources
         "threepp/loaders/OBJLoader.cpp"
         "threepp/loaders/STLLoader.cpp"
         "threepp/loaders/TextureLoader.cpp"
+        "threepp/loaders/URDFLoader.cpp"
 
         "threepp/materials/LineBasicMaterial.cpp"
         "threepp/materials/Material.cpp"
@@ -339,7 +367,9 @@ set(sources
         "threepp/math/Euler.cpp"
         "threepp/math/Frustum.cpp"
         "threepp/math/ImprovedNoise.cpp"
+        "threepp/math/Interpolant.cpp"
         "threepp/math/Line3.cpp"
+        "threepp/math/Lut.cpp"
         "threepp/math/MathUtils.cpp"
         "threepp/math/Matrix3.cpp"
         "threepp/math/Matrix4.cpp"
@@ -384,13 +414,16 @@ set(sources
         "threepp/objects/Sky.cpp"
         "threepp/objects/Sprite.cpp"
         "threepp/objects/Reflector.cpp"
+        "threepp/objects/TextNode.cpp"
         "threepp/objects/Water.cpp"
 
         "threepp/textures/Texture.cpp"
         "threepp/textures/DataTexture3D.cpp"
 
         "threepp/utils/BufferGeometryUtils.cpp"
+        "threepp/utils/ImageUtils.cpp"
         "threepp/utils/StringUtils.cpp"
+        "threepp/utils/TaskManager.cpp"
 
         "threepp/renderers/GLRenderer.cpp"
         "threepp/renderers/GLRenderTarget.cpp"
@@ -427,7 +460,6 @@ if (THREEPP_WITH_SVG)
 
     list(APPEND sources
             "threepp/loaders/SVGLoader.cpp"
-            "external/pugixml/pugixml.cpp"
     )
 endif ()
 
@@ -453,27 +485,41 @@ if (THREEPP_WITH_GLFW)
 
         message("Using threepp's GLFW")
 
-        #https://github.com/raysan5/raylib/blob/master/cmake/GlfwImport.cmake
+        # https://github.com/microsoft/vcpkg/blob/master/ports/glfw3/portfile.cmake
+        if (UNIX AND NOT APPLE)
+            message("GLFW3 currently requires the following libraries from the system package manager:
+    xinerama
+    xcursor
+    xorg
+    libglu1-mesa
+    pkg-config
+
+These can be installed on Ubuntu systems via sudo apt install libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev pkg-config
+"
+            )
+        endif ()
+
+        # https://github.com/raysan5/raylib/blob/master/cmake/GlfwImport.cmake
         set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
         set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
         set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
         set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
-        set(GLFW_BUILD_COCOA OFF CACHE BOOL "" FORCE)
         set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
-        if (THREEPP_EMBEDDED_GLFW_WITH_X11)
-            set(GLFW_BUILD_X11 ON CACHE BOOL "" FORCE)
+        if (BUILD_SHARED_LIBS)
+            set(GLFW_LIBRARY_TYPE "SHARED" CACHE STRING "" FORCE)
         else()
-            set(GLFW_BUILD_X11 OFF CACHE BOOL "" FORCE)
-        endif ()
-        set(GLFW_LIBRARY_TYPE "OBJECT" CACHE STRING "" FORCE)
+            set(GLFW_LIBRARY_TYPE "OBJECT" CACHE STRING "" FORCE)
+        endif()
         add_subdirectory("external/glfw")
 
         # Hide glfw's symbols when building a shared lib
         if (BUILD_SHARED_LIBS)
             set_property(TARGET glfw PROPERTY C_VISIBILITY_PRESET hidden)
+        else ()
+            list(APPEND sources $<TARGET_OBJECTS:glfw>)
         endif ()
 
-        list(APPEND sources $<TARGET_OBJECTS:glfw>)
+
     endif ()
 endif ()
 
@@ -496,11 +542,12 @@ list(APPEND sources
 
 add_library(threepp ${sources} ${privateHeaders} ${publicHeadersFull})
 add_library(threepp::threepp ALIAS threepp)
-target_compile_features(threepp PUBLIC "cxx_std_17")
+target_compile_features(threepp PUBLIC "cxx_std_20")
 
 if (UNIX)
     target_link_libraries(threepp PRIVATE pthread dl)
 endif ()
+
 target_include_directories(threepp
         PUBLIC
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>"
@@ -509,12 +556,18 @@ target_include_directories(threepp
         "${generatedSourcesDir}"
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}/external/earcut"
-        "${CMAKE_CURRENT_SOURCE_DIR}/external/miniaudio"
         "${CMAKE_CURRENT_SOURCE_DIR}/external/nlohmann"
-        "${CMAKE_CURRENT_SOURCE_DIR}/external/pugixml"
         "${CMAKE_CURRENT_SOURCE_DIR}/external/quickhull"
         "${CMAKE_CURRENT_SOURCE_DIR}/external/stb"
+        "${CMAKE_CURRENT_SOURCE_DIR}/external/pugixml"
 )
+
+if (THREEPP_WITH_AUDIO)
+    target_include_directories(threepp
+            PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/external/miniaudio"
+    )
+endif ()
 
 if (NOT DEFINED EMSCRIPTEN)
 
@@ -523,10 +576,30 @@ if (NOT DEFINED EMSCRIPTEN)
             "${CMAKE_CURRENT_SOURCE_DIR}/external/glad"
     )
 
-    if (THREEPP_USE_EXTERNAL_GLFW)
-        target_link_libraries(threepp PRIVATE glfw::glfw)
+    if (THREEPP_USE_EXTERNAL_GLFW OR BUILD_SHARED_LIBS)
+        target_link_libraries(threepp PRIVATE glfw)
     else ()
         target_include_directories(threepp PRIVATE BEFORE SYSTEM "external/glfw/include")
+        if (APPLE)
+            target_link_libraries(threepp PRIVATE "-framework IOKit")
+            target_link_libraries(threepp PRIVATE "-framework Cocoa")
+            target_link_libraries(threepp PRIVATE "-framework OpenGL")
+        endif ()
     endif ()
 
+endif ()
+
+
+if (THREEPP_TREAT_WARNINGS_AS_ERRORS)
+    # Treat warnings as errors,
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        target_compile_options(threepp PRIVATE "-Wall" "-Wextra")
+        target_compile_options(threepp PRIVATE
+                "-Wno-parentheses" "-Wno-reorder" "-Wno-reorder-ctor"
+                "-Wno-missing-field-initializers" "-Wno-overloaded-virtual"
+                "-Wno-unused-parameter" "-Wno-dollar-in-identifier-extension")
+        target_compile_options(threepp PRIVATE "-Werror")
+    elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        target_compile_options(threepp PRIVATE "/WX")
+    endif ()
 endif ()

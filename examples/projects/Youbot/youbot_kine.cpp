@@ -5,6 +5,7 @@
 #include "kine/Kine.hpp"
 #include "kine/ik/CCDSolver.hpp"
 
+#include "KeyController.hpp"
 #include "threepp/extras/imgui/ImguiContext.hpp"
 
 #include <future>
@@ -22,7 +23,7 @@ struct MyUI: ImguiContext {
     std::vector<float> values;
 
     explicit MyUI(const Canvas& canvas, Kine& kine)
-        : ImguiContext(canvas.windowPtr()),
+        : ImguiContext(canvas),
           limits(kine.limits()),
           values(kine.meanAngles()) {
 
@@ -95,25 +96,30 @@ int main() {
 
     HUD hud(canvas.size());
     FontLoader fontLoader;
-    const auto font = *fontLoader.load("data/fonts/helvetiker_regular.typeface.json");
+    const auto font = *fontLoader.load(std::string(DATA_FOLDER) + "/fonts/helvetiker_regular.typeface.json");
 
     TextGeometry::Options opts(font, 30, 5);
     auto handle = Text2D(opts, "Loading model..");
     handle.setColor(Color::black);
     hud.add(handle, HUD::Options()
                             .setNormalizedPosition({0.5, 0.5})
-                            .setHorizontalAlignment(threepp::HUD::HorizontalAlignment::CENTER)
+                            .setHorizontalAlignment(HUD::HorizontalAlignment::CENTER)
                             .setVerticalAlignment(HUD::VerticalAlignment::CENTER));
 
+    TaskManager tm;
 
     std::shared_ptr<Youbot> youbot;
+    std::unique_ptr<KeyController> keyController;
     auto future = std::async([&] {
-        youbot = Youbot::create("data/models/collada/youbot.dae");
+
+        youbot = Youbot::create(std::string(DATA_FOLDER) + "/models/collada/youbot.dae");
         youbot->add(targetHelper);
         youbot->add(endEffectorHelper);
         endEffectorHelper->visible = true;
-        renderer.invokeLater([&] {
-            canvas.addKeyListener(*youbot);
+        keyController = std::make_unique<KeyController>(*youbot);
+
+        tm.invokeLater([&] {
+            canvas.addKeyListener(*keyController);
             scene->add(youbot);
             hud.remove(handle);
         });
@@ -152,7 +158,9 @@ int main() {
 
     Clock clock;
     canvas.animate([&]() {
-        float dt = clock.getDelta();
+        const auto dt = clock.getDelta();
+
+        tm.handleTasks();
 
         renderer.clear();
         renderer.render(*scene, *camera);
@@ -180,7 +188,7 @@ int main() {
             }
 
             youbot->setJointValues(ui.values);
-            youbot->update(dt);
+            keyController->update(dt);
         } else {
 
             hud.apply(renderer);

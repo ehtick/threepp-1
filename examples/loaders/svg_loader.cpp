@@ -1,20 +1,15 @@
+#include "threepp/extras/imgui/ImguiContext.hpp"
 #include "threepp/loaders/SVGLoader.hpp"
 #include "threepp/threepp.hpp"
-
-#ifdef HAS_IMGUI
-#include "threepp/extras/imgui/ImguiContext.hpp"
-#endif
 
 using namespace threepp;
 
 namespace {
 
-#ifdef HAS_IMGUI
-
-    struct MyUI: public ImguiContext {
+    class MyUI: public ImguiContext {
 
     public:
-        explicit MyUI(void* ptr): ImguiContext(ptr) {}
+        explicit MyUI(const Canvas& canvas): ImguiContext(canvas) {}
 
         [[nodiscard]] bool newSelection() const {
             return lastSelectedIndex != selectedIndex;
@@ -30,7 +25,7 @@ namespace {
             lastSelectedIndex = selectedIndex;
 
             ImGui::SetNextWindowPos({}, 0, {});
-            ImGui::SetNextWindowSize({250, 0}, 0);
+            ImGui::SetNextWindowSize({250 * dpiScale(), 0}, 0);
 
             ImGui::Begin("SVGLoader");
 
@@ -57,12 +52,10 @@ namespace {
                 "styles.svg", "units.svg", "ellipseTransform.svg"};
     };
 
-#endif
-
     auto loadSvg(const std::string& name = "tiger.svg") {
 
         SVGLoader loader;
-        auto svgData = loader.load("data/models/svg/" + name);
+        auto svgData = loader.load(std::string(DATA_FOLDER) + "/models/svg/" + name);
 
         auto svg = Group::create();
         svg->name = std::filesystem::path(name).stem().string();
@@ -145,6 +138,7 @@ int main() {
 
     auto gridHelper = GridHelper::create(160, 10);
     gridHelper->rotation.x = math::PI / 2;
+    gridHelper->position.z = -0.1f;
     scene->add(gridHelper);
 
     std::shared_ptr<Object3D> svg;
@@ -157,8 +151,7 @@ int main() {
 
     OrbitControls controls{*camera, canvas};
 
-#ifdef HAS_IMGUI
-    MyUI ui(canvas.windowPtr());
+    MyUI ui(canvas);
 
     IOCapture capture{};
     capture.preventMouseEvent = [] {
@@ -168,10 +161,6 @@ int main() {
         return ImGui::GetIO().WantCaptureMouse;
     };
     canvas.setIOCapture(&capture);
-#else
-    svg = loadSvg();
-    scene->add(svg);
-#endif
 
     Box3 bb;
     auto box3Helper = Box3Helper::create(bb, Color::grey);
@@ -184,8 +173,6 @@ int main() {
     Clock clock;
     canvas.animate([&]() {
         renderer.render(*scene, *camera);
-
-#ifdef HAS_IMGUI
 
         if (ui.newSelection()) {
             if (svg) {
@@ -220,6 +207,5 @@ int main() {
         }
 
         ui.render();
-#endif
     });
 }

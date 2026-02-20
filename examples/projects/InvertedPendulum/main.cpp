@@ -3,10 +3,7 @@
 #include "utility/Regulator.hpp"
 
 #include "InvertedPendulum.hpp"
-
-#if HAS_IMGUI
 #include "threepp/extras/imgui/ImguiContext.hpp"
-#endif
 
 using namespace threepp;
 
@@ -45,12 +42,11 @@ int main() {
         renderer.setSize(size);
     });
 
-#if HAS_IMGUI
-    ImguiFunctionalContext ui(canvas.windowPtr(), [&] {
+    ImguiFunctionalContext ui(canvas, [&] {
         externalForce = 0;
 
         ImGui::SetNextWindowPos({0, 0}, 0, {0, 0});
-        ImGui::SetNextWindowSize({230, 0}, 0);
+        ImGui::SetNextWindowSize({0, 0}, 0);
         ImGui::Begin("Inverted Pendulum");
         ImGui::Checkbox("Apply control", &applyControl);
         if (ImGui::Button("Push left")) {
@@ -60,7 +56,6 @@ int main() {
         }
         ImGui::End();
     });
-#endif
 
     Clock clock;
     canvas.animate([&] {
@@ -71,8 +66,6 @@ int main() {
 
         renderer.render(scene, camera);
 
-#if HAS_IMGUI
         ui.render();
-#endif
     });
 }

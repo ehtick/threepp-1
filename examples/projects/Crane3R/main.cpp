@@ -12,8 +12,6 @@
 using namespace threepp;
 using namespace kine;
 
-#ifdef HAS_IMGUI
-
 #include "kine/ik/CCDSolver.hpp"
 #include "threepp/extras/imgui/ImguiContext.hpp"
 
@@ -28,7 +26,7 @@ struct MyUI: ImguiContext {
     std::vector<float> values;
 
     explicit MyUI(const Canvas& canvas, Kine& kine)
-        : ImguiContext(canvas.windowPtr()),
+        : ImguiContext(canvas),
           limits(kine.limits()),
           values(kine.meanAngles()) {
 
@@ -66,7 +64,6 @@ struct MyUI: ImguiContext {
         ImGui::End();
     }
 };
-#endif
 
 auto createGrid() {
 
@@ -118,7 +115,7 @@ int main() {
 
     HUD hud(canvas.size());
     FontLoader fontLoader;
-    const auto font = *fontLoader.load("data/fonts/helvetiker_regular.typeface.json");
+    const auto font = *fontLoader.load(std::string(DATA_FOLDER) + "/fonts/helvetiker_regular.typeface.json");
 
     TextGeometry::Options opts(font, 40, 2);
     auto handle = Text2D(opts, "Loading Crane3R..");
@@ -137,6 +134,7 @@ int main() {
                         .addLink(Vector3::Z() * 5.2)
                         .build();
 
+    TaskManager tm;
 
 #ifndef EMSCRIPTEN
     std::shared_ptr<Crane3R> crane;
@@ -147,7 +145,7 @@ int main() {
             m.castShadow = true;
         });
 
-        renderer.invokeLater([&, crane] {
+        tm.invokeLater([&, crane] {
             hud.remove(handle);
             scene->add(crane);
             endEffectorHelper->visible = true;
@@ -173,9 +171,6 @@ int main() {
         hud.setSize(size);
     });
 
-
-#ifdef HAS_IMGUI
-
     IOCapture capture{};
     capture.preventMouseEvent = [] {
         return ImGui::GetIO().WantCaptureMouse;
@@ -190,17 +185,17 @@ int main() {
     targetHelper->visible = false;
     scene->add(targetHelper);
 
-#endif
-
     Clock clock;
     canvas.animate([&]() {
-        float dt = clock.getDelta();
+        const auto dt = clock.getDelta();
+
+        tm.handleTasks();
 
         renderer.clear();
         renderer.render(*scene, *camera);
 
         if (crane) {
-#ifdef HAS_IMGUI
+
             ui.render();
 
             auto endEffectorPosition = kine.calculateEndEffectorTransformation(inDegrees(crane->getValues()));
@@ -219,7 +214,6 @@ int main() {
 
             crane->controllerEnabled = ui.enableController;
             crane->setTargetValues(asAngles(ui.values, Angle::Repr::DEG));
-#endif
 
             crane->update(dt);
 

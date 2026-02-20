@@ -44,7 +44,7 @@ Ray& Ray::copy(const Ray& ray) {
 
 Vector3& Ray::at(float t, Vector3& target) const {
 
-    return target.copy(this->direction).multiplyScalar(t).add(this->origin);
+    return target.copy(this->origin).addScaledVector(this->direction, t);
 }
 
 Ray& Ray::lookAt(const Vector3& v) {
@@ -73,7 +73,7 @@ void Ray::closestPointToPoint(const Vector3& point, Vector3& target) const {
 
     } else {
 
-        target.copy(this->direction).multiplyScalar(directionDistance).add(this->origin);
+        target.copy(this->origin).addScaledVector(this->direction, directionDistance);
     }
 }
 
@@ -94,7 +94,7 @@ float Ray::distanceSqToPoint(const Vector3& point) const {
     }
 
 
-    _vector.copy(this->direction).multiplyScalar(directionDistance).add(this->origin);
+    _vector.copy(this->origin).addScaledVector(this->direction, directionDistance);
 
     return _vector.distanceToSquared(point);
 }
@@ -481,4 +481,14 @@ Ray& Ray::applyMatrix4(const Matrix4& matrix4) {
     this->direction.transformDirection(matrix4);
 
     return *this;
+}
+
+bool Ray::equals(const Ray& ray) const {
+
+    return ray.origin.equals( this->origin ) && ray.direction.equals( this->direction );
+}
+
+Ray Ray::clone() const {
+
+    return Ray().copy(*this);
 }

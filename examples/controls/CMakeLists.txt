@@ -2,5 +2,5 @@
 add_example(NAME "drag" WEB)
 add_example(NAME "transform" WEB)
 add_example(NAME "fly" WEB WEB_EMBED
-        "../data/textures/planets@data/textures/planets"
+        "${PROJECT_SOURCE_DIR}/data/textures/planets@data/textures/planets"
 )

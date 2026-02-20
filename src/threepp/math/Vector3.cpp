@@ -76,6 +76,19 @@ float& Vector3::operator[](size_t index) {
     }
 }
 
+float Vector3::operator[](size_t index) const {
+    switch (index) {
+        case 0:
+            return x;
+        case 1:
+            return y;
+        case 2:
+            return z;
+        default:
+            throw std::runtime_error("index out of bound: " + std::to_string(index));
+    }
+}
+
 Vector3& Vector3::copy(const Vector3& v) {
 
     this->x = v.x;
@@ -303,6 +316,21 @@ Vector3& Vector3::clamp(const Vector3& min, const Vector3& max) {
     this->x = std::max(min.x, std::min(max.x, this->x));
     this->y = std::max(min.y, std::min(max.y, this->y));
     this->z = std::max(min.z, std::min(max.z, this->z));
+
+    return *this;
+}
+
+Vector3& Vector3::clampLength(float min, float max) {
+
+    const auto length = this->length();
+
+    return this->divideScalar(length != 0 ? length : 1).multiplyScalar(std::max(min, std::min(max, length)));
+}
+
+Vector3& Vector3::clampScalar(float minVal, float maxVal) {
+    this->x = std::max(minVal, std::min(maxVal, this->x));
+    this->y = std::max(minVal, std::min(maxVal, this->y));
+    this->z = std::max(minVal, std::min(maxVal, this->z));
 
     return *this;
 }

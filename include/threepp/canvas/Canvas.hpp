@@ -30,19 +30,20 @@ namespace threepp {
         //the current size of the Canvas window
         [[nodiscard]] WindowSize size() const override;
 
-        //the size of the Monitor
-        [[nodiscard]] WindowSize monitorSize() const;
-
         [[nodiscard]] float aspect() const;
 
-        void setSize(WindowSize size);
+        void setSize(std::pair<int, int> size);
 
         void onWindowResize(std::function<void(WindowSize)> f);
+
+        void onMonitorChange(std::function<void(int)> f) const;
 
         void animate(const std::function<void()>& f);
 
         // returns false if application should quit, true otherwise
         bool animateOnce(const std::function<void()>& f);
+
+        [[nodiscard]] bool isOpen() const;
 
         void close();
 
@@ -77,6 +78,8 @@ namespace threepp {
 
             Parameters& exitOnKeyEscape(bool flag);
 
+            Parameters& headless(bool flag);
+
         private:
             std::optional<WindowSize> size_;
             int antialiasing_{2};
@@ -84,9 +87,10 @@ namespace threepp {
             bool vsync_{true};
             bool resizable_{true};
             bool exitOnKeyEscape_{true};
+            bool headless_{false};
             std::optional<std::filesystem::path> favicon_;
 
-            friend struct Canvas::Impl;
+            friend struct Impl;
         };
     };
 
