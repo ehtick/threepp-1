@@ -32,8 +32,6 @@ namespace threepp {
 
         void removeEventListener(const std::string& type, const EventListener& listener);
 
-        void dispatchEvent(Event& event);
-
         void dispatchEvent(const std::string& type, void* target = nullptr);
 
         virtual ~EventDispatcher() = default;

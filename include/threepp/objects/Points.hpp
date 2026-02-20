@@ -20,7 +20,7 @@ namespace threepp {
 
         std::shared_ptr<BufferGeometry> geometry() const override;
 
-        void setGeometry(const std::shared_ptr<BufferGeometry>& geometry) override;
+        void setGeometry(const std::shared_ptr<BufferGeometry>& geometry);
 
         void raycast(const Raycaster& raycaster, std::vector<Intersection>& intersects) override;
 

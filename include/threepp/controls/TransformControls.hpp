@@ -1,3 +1,4 @@
+// https://github.com/mrdoob/three.js/blob/r129/examples/jsm/controls/TransformControls.js
 
 #ifndef THREEPP_TRANSFORMCONTROLS_HPP
 #define THREEPP_TRANSFORMCONTROLS_HPP
@@ -14,19 +15,16 @@ namespace threepp {
     class TransformControls: public Object3D {
 
     public:
-        bool enabled = true;
-        std::string mode{"translate"};
-        std::string space{"world"};
-        float size = 1;
-        bool dragging = false;
-        bool showX = true;
-        bool showY = true;
-        bool showZ = true;
 
-        std::optional<float> rotationSnap;
-        std::optional<float> translationSnap;
+        bool enabled = true;
 
         TransformControls(Camera& camera, PeripheralsEventSource& canvas);
+
+        void setSpace(const std::string& space);
+
+        [[nodiscard]] std::string getSpace() const;
+
+        void setMode(const std::string& mode);
 
         TransformControls& attach(Object3D& object);
 
@@ -34,7 +32,7 @@ namespace threepp {
 
         void updateMatrixWorld(bool force) override;
 
-        ~TransformControls();
+        ~TransformControls() override;
 
     private:
         struct Impl;
