@@ -66,10 +66,10 @@ int main() {
     DragControls controls(objects, camera, canvas);
     controls.rotateSpeed = 2;
 
-    struct HoverListener: public EventListener {
+    struct HoverListener: EventListener {
         void onEvent(Event& event) override {
 
-            auto target = static_cast<Object3D*>(event.target);
+            auto target = std::any_cast<Object3D*>(event.target);
             auto& color = target->material()->as<MaterialWithColor>()->color;
 
             if (event.type == "hoveron") {

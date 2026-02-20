@@ -3,9 +3,11 @@
 #ifndef THREEPP_EVENTDISPATCHER_HPP
 #define THREEPP_EVENTDISPATCHER_HPP
 
+#include <any>
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <functional>
 
 
 namespace threepp {
@@ -13,7 +15,7 @@ namespace threepp {
     struct Event {
 
         const std::string type;
-        void* target;
+        std::any target;
     };
 
     struct EventListener {
@@ -21,6 +23,18 @@ namespace threepp {
         virtual void onEvent(Event& event) = 0;
 
         virtual ~EventListener() = default;
+    };
+
+    struct LambdaEventListener: EventListener {
+
+        explicit LambdaEventListener(std::function<void(Event&)> f): f_(std::move(f)) {}
+
+        void onEvent(Event& event) override {
+            f_(event);
+        }
+
+    private:
+        std::function<void(Event&)> f_;
     };
 
     class EventDispatcher {
@@ -32,7 +46,7 @@ namespace threepp {
 
         void removeEventListener(const std::string& type, const EventListener& listener);
 
-        void dispatchEvent(const std::string& type, void* target = nullptr);
+        void dispatchEvent(const std::string& type, std::any target = {});
 
         virtual ~EventDispatcher() = default;
 

@@ -83,11 +83,6 @@ namespace {
         return geometry;
     }
 
-    struct GizmoObject: Object3D {
-
-        std::optional<float> _opacity;
-        std::optional<Color> _color;
-    };
 
     struct State {
 
@@ -116,9 +111,9 @@ namespace {
         std::optional<float> translationSnap;
         std::optional<float> scaleSnap;
 
-        Camera* camera;
+        Camera* camera = nullptr;
 
-        State(bool& enabled): enabled(enabled) {}
+        explicit State(bool& enabled): enabled(enabled) {}
     };
 
 
@@ -126,9 +121,9 @@ namespace {
 
 struct TransformControlsGizmo: Object3D {
 
-    std::unordered_map<std::string, GizmoObject*> gizmo;
-    std::unordered_map<std::string, GizmoObject*> picker;
-    std::unordered_map<std::string, GizmoObject*> helper;
+    std::unordered_map<std::string, Object3D*> gizmo;
+    std::unordered_map<std::string, Object3D*> picker;
+    std::unordered_map<std::string, Object3D*> helper;
 
     State& state;
 
@@ -353,11 +348,11 @@ struct TransformControlsGizmo: Object3D {
                             {Line::create(lineGeometry, matLineRed), std::nullopt, std::nullopt, Vector3{0.8, 1, 1}, std::nullopt}
                       }},
                 {"Y", {
-                            {Mesh::create(scaleHandleGeometry, matGreen), Vector3{0, 0.6, 0}, std::nullopt, std::nullopt, std::nullopt},
+                            {Mesh::create(scaleHandleGeometry, matGreen), Vector3{0, 0.8, 0}, std::nullopt, std::nullopt, std::nullopt},
                             {Line::create(lineGeometry, matLineGreen), std::nullopt, Euler{0, 0, math::PI/2}, Vector3{0.8, 1, 1}, std::nullopt}
                       }},
                 {"Z", {
-                            {Mesh::create(scaleHandleGeometry, matBlue), Vector3{0, 0, 0.6}, Euler{math::PI/2, 0, 0}, std::nullopt, std::nullopt},
+                            {Mesh::create(scaleHandleGeometry, matBlue), Vector3{0, 0, 0.8}, Euler{math::PI/2, 0, 0}, std::nullopt, std::nullopt},
                             {Line::create(lineGeometry, matLineGreen), std::nullopt, Euler{0, -math::PI/2, 0}, Vector3{0.8, 1, 1}, std::nullopt}
                       }},
                 {"XY", {
@@ -477,9 +472,9 @@ struct TransformControlsGizmo: Object3D {
         this->picker["scale"]->visible = false;
     }
 
-    std::shared_ptr<GizmoObject> setupGizmo(const GizmoMap& gizmoMap) {
+    std::shared_ptr<Object3D> setupGizmo(const GizmoMap& gizmoMap) {
 
-        const auto gizmo = std::make_shared<GizmoObject>();
+        const auto gizmo = Object3D::create();
 
         for (const auto& [name, value] : gizmoMap) {
 
@@ -854,6 +849,32 @@ struct TransformControlsGizmo: Object3D {
 
             // highlight selected axis
 
+            if (auto mat = handle->material()) {
+
+                // Save originals on first encounter
+                if (!handle->userData.contains("__orig_opacity")) {
+                    handle->userData["__orig_opacity"] = mat->opacity;
+                }
+
+                if (!handle->userData.contains("__orig_color")) {
+                    if (auto mwc = mat->as<MaterialWithColor>()) {
+                        handle->userData["__orig_color"] = mwc->color; // copy stored
+                    }
+                }
+
+                // Restore original color (if material supports color)
+                if (auto mwc = mat->as<MaterialWithColor>()) {
+                    if (handle->userData.contains("__orig_color")) {
+                        mwc->color.copy(std::any_cast<Color>(handle->userData["__orig_color"]));
+                    }
+                }
+
+                // Restore original opacity
+                if (handle->userData.contains("__orig_opacity")) {
+                    mat->opacity = std::any_cast<float>(handle->userData["__orig_opacity"]);
+                }
+            }
+
             // if (!handle->_opacity) handle->_opacity = handle->material()->opacity;
             // if (!handle->_color) handle->_color = handle->material()->as<MaterialWithColor>()->color;
             //
@@ -1166,7 +1187,8 @@ struct TransformControls::Impl {
             }
 
             state.dragging = true;
-            scope.dispatchEvent("mouseDown", &this->state.mode);
+            scope.dispatchEvent("dragging-changed", this->state.dragging);
+            scope.dispatchEvent("mouseDown", this->state.mode);
         }
     }
 
@@ -1406,6 +1428,8 @@ struct TransformControls::Impl {
 
         this->state.dragging = false;
         this->state.axis = std::nullopt;
+
+        this->scope.dispatchEvent("dragging-changed", this->state.dragging);
     }
 
     void attach(Object3D& object) {
