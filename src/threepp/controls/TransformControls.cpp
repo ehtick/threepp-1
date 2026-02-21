@@ -875,12 +875,6 @@ struct TransformControlsGizmo: Object3D {
                 }
             }
 
-            // if (!handle->_opacity) handle->_opacity = handle->material()->opacity;
-            // if (!handle->_color) handle->_color = handle->material()->as<MaterialWithColor>()->color;
-            //
-            // handle->material()->as<MaterialWithColor>()->color.copy(*handle->_color);
-            // handle->material()->opacity = *handle->_opacity;
-
             if (!this->state.enabled) {
 
                 handle->material()->opacity *= 0.5;
