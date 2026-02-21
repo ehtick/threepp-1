@@ -134,6 +134,10 @@ namespace {
             case GLFW_KEY_INSERT: return Key::INSERT;
             case GLFW_KEY_DELETE: return Key::DEL;
 
+            case GLFW_KEY_LEFT_SHIFT: return Key::LEFT_SHIFT;
+            case GLFW_KEY_LEFT_CONTROL: return Key::LEFT_CONTROL;
+            case GLFW_KEY_LEFT_ALT: return Key::LEFT_ALT;
+
             default: return Key::UNKNOWN;
 
         }

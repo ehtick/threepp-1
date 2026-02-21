@@ -167,7 +167,10 @@ namespace threepp {
         KP_6,
         KP_7,
         KP_8,
-        KP_9
+        KP_9,
+        LEFT_SHIFT,
+        LEFT_CONTROL,
+        LEFT_ALT
     };
 
 }// namespace threepp
