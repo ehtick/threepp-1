@@ -2,6 +2,7 @@
 #include "Crane3R.hpp"
 
 #include "kine/Kine.hpp"
+#include "threepp/controls/TransformControls.hpp"
 #include "threepp/threepp.hpp"
 #include "utility/Angle.hpp"
 
@@ -185,11 +186,23 @@ int main() {
     targetHelper->visible = false;
     scene->add(targetHelper);
 
+    TransformControls transformControls(*camera, canvas);
+    transformControls.attach(*targetHelper);
+    scene->add(transformControls);
+
+    LambdaEventListener changeListener([&](Event& event) {
+        controls.enabled = !std::any_cast<bool>(event.target);
+    });
+
+    transformControls.addEventListener("dragging-changed", changeListener);
+
     Clock clock;
     canvas.animate([&]() {
         const auto dt = clock.getDelta();
 
         tm.handleTasks();
+
+        transformControls.visible = targetHelper->visible;
 
         renderer.clear();
         renderer.render(*scene, *camera);
@@ -201,14 +214,18 @@ int main() {
             auto endEffectorPosition = kine.calculateEndEffectorTransformation(inDegrees(crane->getValues()));
             endEffectorHelper->position.setFromMatrixPosition(endEffectorPosition);
 
-            targetHelper->position.copy(ui.pos);
+            if (controls.enabled) {
+                targetHelper->position.copy(ui.pos);
+            } else {
+                ui.pos.copy(targetHelper->position);
+            }
 
             if (ui.jointMode) {
                 ui.pos.setFromMatrixPosition(kine.calculateEndEffectorTransformation(ui.values));
                 targetHelper->visible = false;
             }
             if (ui.posMode) {
-                ui.values = ikSolver->solveIK(kine, ui.pos, inDegrees(crane->getValues()));
+                ui.values = ikSolver->solveIK(kine, targetHelper->position, inDegrees(crane->getValues()));
                 targetHelper->visible = true;
             }
 
