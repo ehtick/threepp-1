@@ -17,6 +17,9 @@ namespace threepp {
     public:
 
         bool enabled = true;
+        bool showX = true;
+        bool showY = true;
+        bool showZ = true;
 
         TransformControls(Camera& camera, PeripheralsEventSource& canvas);
 
@@ -25,6 +28,14 @@ namespace threepp {
         [[nodiscard]] std::string getSpace() const;
 
         void setMode(const std::string& mode);
+
+        void setSize(float size);
+
+        void setTranslationSnap(std::optional<float> snap);
+
+        void setRotationSnap(std::optional<float> snap);
+
+        void setScaleSnap(std::optional<float> snap);
 
         TransformControls& attach(Object3D& object);
 

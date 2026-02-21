@@ -17,7 +17,7 @@ int main() {
     renderer.shadowMap().type = ShadowMap::PFC;
 
     PerspectiveCamera camera(60, canvas.aspect());
-    camera.position.set(0,5,5);
+    camera.position.set(0, 5, 5);
 
     Scene scene;
     scene.background = Color::aliceblue;
@@ -62,7 +62,7 @@ int main() {
 
     controls.addEventListener("dragging-changed", changeListener);
 
-    KeyAdapter adapter(KeyAdapter::Mode::KEY_PRESSED, [&](KeyEvent evt) {
+    KeyAdapter keyDownListener(KeyAdapter::Mode::KEY_PRESSED, [&](KeyEvent evt) {
         switch (evt.key) {
             case Key::Q: {
                 controls.setSpace(controls.getSpace() == "local" ? "world" : "local");
@@ -80,13 +80,39 @@ int main() {
                 controls.setMode("scale");
                 break;
             }
+            case Key::X: {
+                controls.showX = !controls.showX;
+                break;
+            }
+            case Key::Y: {
+                controls.showY = !controls.showY;
+                break;
+            }
+            case Key::Z: {
+                controls.showZ = !controls.showZ;
+                break;
+            }
             case Key::SPACE: {
                 controls.enabled = !controls.enabled;
                 break;
             }
+            case Key::LEFT_SHIFT:
+                controls.setTranslationSnap(1.f);
+                controls.setRotationSnap(math::degToRad(15.f));
+                controls.setScaleSnap(0.25f);
+            default:
+                break;
         }
     });
-    canvas.addKeyListener(adapter);
+    KeyAdapter keyUpListener(KeyAdapter::Mode::KEY_RELEASED, [&](KeyEvent evt) {
+        if (evt.key == Key::LEFT_SHIFT) {
+            controls.setTranslationSnap(std::nullopt);
+            controls.setRotationSnap(std::nullopt);
+            controls.setScaleSnap(std::nullopt);
+        }
+    });
+    canvas.addKeyListener(keyDownListener);
+    canvas.addKeyListener(keyUpListener);
 
 
     canvas.onWindowResize([&](WindowSize size) {
