@@ -522,7 +522,7 @@ std::optional<unsigned int> gl::GLTextures::getGlTexture(Texture& texture) const
 
 void gl::GLTextures::TextureEventListener::onEvent(Event& event) {
 
-    auto texture = static_cast<Texture*>(event.target);
+    const auto texture = std::any_cast<Texture*>(event.target);
 
     texture->removeEventListener("dispose", *this);
 
@@ -533,7 +533,7 @@ void gl::GLTextures::TextureEventListener::onEvent(Event& event) {
 
 void gl::GLTextures::RenderTargetEventListener::onEvent(Event& event) {
 
-    auto renderTarget = static_cast<GLRenderTarget*>(event.target);
+    const auto renderTarget = std::any_cast<GLRenderTarget*>(event.target);
 
     renderTarget->removeEventListener("dispose", *this);
 

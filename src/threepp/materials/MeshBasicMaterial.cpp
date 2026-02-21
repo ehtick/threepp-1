@@ -134,5 +134,5 @@ bool MeshBasicMaterial::setValue(const std::string& key, const MaterialValue& va
 
 std::shared_ptr<Material> MeshBasicMaterial::createDefault() const {
 
-    return {};
+    return std::shared_ptr<Material>(new MeshBasicMaterial());
 }

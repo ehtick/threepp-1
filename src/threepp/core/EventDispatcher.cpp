@@ -31,7 +31,7 @@ void EventDispatcher::removeEventListener(const std::string& type, const EventLi
     }
 }
 
-void EventDispatcher::dispatchEvent(const std::string& type, void* target) {
+void EventDispatcher::dispatchEvent(const std::string& type, std::any target) {
 
     if (listeners_.contains(type)) {
 

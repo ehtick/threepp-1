@@ -57,7 +57,7 @@ struct GLRenderer::Impl {
 
         void onEvent(Event& event) override {
 
-            auto material = static_cast<Material*>(event.target);
+            const auto material = std::any_cast<Material*>(event.target);
 
             material->removeEventListener("dispose", *this);
 

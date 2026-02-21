@@ -18,12 +18,12 @@ using namespace threepp::gl;
 
 struct GLObjects::Impl {
 
-    struct OnInstancedMeshDispose: public EventListener {
+    struct OnInstancedMeshDispose: EventListener {
 
-        explicit OnInstancedMeshDispose(GLObjects::Impl* scope): scope(scope) {}
+        explicit OnInstancedMeshDispose(Impl* scope): scope(scope) {}
 
         void onEvent(Event& event) override {
-            auto instancedMesh = static_cast<InstancedMesh*>(event.target);
+            auto instancedMesh = std::any_cast<InstancedMesh*>(event.target);
 
             instancedMesh->removeEventListener("dispose", *this);
 
@@ -33,7 +33,7 @@ struct GLObjects::Impl {
         }
 
     private:
-        GLObjects::Impl* scope;
+        Impl* scope;
     };
 
     GLInfo& info_;
