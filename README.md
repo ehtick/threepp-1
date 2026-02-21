@@ -17,7 +17,7 @@ however much remains to be done..
 * 2D/3D Textures, 3D text, Sprites, RenderTarget, CubeMaps
 * Transparency, Shadows
 * Morphtargets, Bones
-* Controls [Orbit, Fly, Drag]
+* Controls [Orbit, Fly, Drag, Transform]
 * Water and Sky shaders
 * Built-in text rendering and font loading [typeface.json, TTF]
 * Loaders [Binary STL, OBJ/MTL, SVG, URDF]
