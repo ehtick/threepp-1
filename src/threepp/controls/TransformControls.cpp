@@ -353,7 +353,7 @@ struct TransformControlsGizmo: Object3D {
                       }},
                 {"Z", {
                             {Mesh::create(scaleHandleGeometry, matBlue), Vector3{0, 0, 0.8}, Euler{math::PI/2, 0, 0}, std::nullopt, std::nullopt},
-                            {Line::create(lineGeometry, matLineGreen), std::nullopt, Euler{0, -math::PI/2, 0}, Vector3{0.8, 1, 1}, std::nullopt}
+                            {Line::create(lineGeometry, matLineBlue), std::nullopt, Euler{0, -math::PI/2, 0}, Vector3{0.8, 1, 1}, std::nullopt}
                       }},
                 {"XY", {
                             {Mesh::create(scaleHandleGeometry, matYellowTransparent), Vector3{0.85, 0.85, 0}, std::nullopt, Vector3{2, 2, 0.2}, std::nullopt},
@@ -361,9 +361,9 @@ struct TransformControlsGizmo: Object3D {
                             {Line::create(lineGeometry, matLineYellow), Vector3{0.98, 0.855, 0}, Euler{0, 0, math::PI/2}, Vector3{0.125, 1, 1}, std::nullopt}
                       }},
                 {"YZ", {
-                            {Mesh::create(scaleHandleGeometry, matMagentaTransparent), Vector3{0, 0.85, 0.85}, std::nullopt, Vector3{0.2, 2, 2}, std::nullopt},
-                            {Line::create(lineGeometry, matLineMagenta), Vector3{0, 0.855, 0.98}, Euler{0, 0, math::PI/2}, Vector3{0.125, 1, 1}, std::nullopt},
-                            {Line::create(lineGeometry, matLineMagenta), Vector3{0, 0.98, 0.855}, Euler{0, -math::PI/2, 0}, Vector3{0.125, 1, 1}, std::nullopt}
+                            {Mesh::create(scaleHandleGeometry, matCyanTransparent), Vector3{0, 0.85, 0.85}, std::nullopt, Vector3{0.2, 2, 2}, std::nullopt},
+                            {Line::create(lineGeometry, matLineCyan), Vector3{0, 0.855, 0.98}, Euler{0, 0, math::PI/2}, Vector3{0.125, 1, 1}, std::nullopt},
+                            {Line::create(lineGeometry, matLineCyan), Vector3{0, 0.98, 0.855}, Euler{0, -math::PI/2, 0}, Vector3{0.125, 1, 1}, std::nullopt}
                       }},
                 {"XZ", {
                            {Mesh::create(scaleHandleGeometry, matMagentaTransparent), Vector3{0.85, 0, 0.85}, std::nullopt, Vector3{2, 0.2, 2}, std::nullopt},
@@ -858,7 +858,7 @@ struct TransformControlsGizmo: Object3D {
 
                 if (!handle->userData.contains("__orig_color")) {
                     if (auto mwc = mat->as<MaterialWithColor>()) {
-                        handle->userData["__orig_color"] = mwc->color; // copy stored
+                        handle->userData["__orig_color"] = mwc->color;// copy stored
                     }
                 }
 
