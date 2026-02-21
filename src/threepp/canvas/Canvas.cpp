@@ -438,6 +438,10 @@ float Canvas::aspect() const {
     return size().aspect();
 }
 
+void Canvas::exitOnKeyEscape(bool value) {
+    pimpl_->exitOnKeyEscape_ = value;
+}
+
 void Canvas::setSize(std::pair<int, int> size) {
 
     pimpl_->setSize(size);
