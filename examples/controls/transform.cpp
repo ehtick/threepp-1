@@ -2,48 +2,49 @@
 #include "threepp/controls/TransformControls.hpp"
 #include "threepp/threepp.hpp"
 
-#include <iostream>
-
 using namespace threepp;
+
+namespace {
+
+    class ExampleKeyListener: public KeyListener {
+    public:
+        explicit ExampleKeyListener(TransformControls& controls)
+            : controls_(controls) {}
+
+        void onKeyPressed(KeyEvent evt) override;
+        void onKeyReleased(KeyEvent evt) override;
+
+    private:
+        TransformControls& controls_;
+    };
+
+}// namespace
 
 int main() {
 
-    Canvas canvas(Canvas::Parameters()
-                          .title("Transform controls")
-                          .exitOnKeyEscape(false));
+    Canvas canvas("Transform controls");
+
+    canvas.exitOnKeyEscape(false);
 
     GLRenderer renderer(canvas.size());
     renderer.shadowMap().enabled = true;
     renderer.shadowMap().type = ShadowMap::PFC;
 
-    PerspectiveCamera camera(60, canvas.aspect());
+    PerspectiveCamera camera(60, canvas.aspect(), 0.1f, 1000.f);
     camera.position.set(0, 5, 5);
 
     Scene scene;
-    scene.background = Color::aliceblue;
+    scene.background = Color::black;
 
     scene.add(AmbientLight::create(0xaaaaaa));
-
-    auto light = SpotLight::create(0xffffff, 1.f);
-    light->position.set(0, 25, 50);
-    light->angle = math::PI / 9;
-
-    light->castShadow = true;
-    light->shadow->camera->as<PerspectiveCamera>()->nearPlane = 10;
-    light->shadow->camera->as<PerspectiveCamera>()->farPlane = 100;
-    light->shadow->mapSize.x = 1024;
-    light->shadow->mapSize.y = 1024;
-
-    scene.add(light);
 
     TextureLoader tl;
     auto tex = tl.load(std::string(DATA_FOLDER) + "/textures/crate.gif");
 
     auto material = MeshBasicMaterial::create();
-    material->transparent = true;
-    material->opacity = 0.7f;
     material->map = tex;
     auto object = Mesh::create(BoxGeometry::create(), material);
+    object->position.y = .5f;
     scene.add(object);
 
 
@@ -62,57 +63,8 @@ int main() {
 
     controls.addEventListener("dragging-changed", changeListener);
 
-    KeyAdapter keyDownListener(KeyAdapter::Mode::KEY_PRESSED, [&](KeyEvent evt) {
-        switch (evt.key) {
-            case Key::Q: {
-                controls.setSpace(controls.getSpace() == "local" ? "world" : "local");
-                break;
-            }
-            case Key::W: {
-                controls.setMode("translate");
-                break;
-            }
-            case Key::E: {
-                controls.setMode("rotate");
-                break;
-            }
-            case Key::R: {
-                controls.setMode("scale");
-                break;
-            }
-            case Key::X: {
-                controls.showX = !controls.showX;
-                break;
-            }
-            case Key::Y: {
-                controls.showY = !controls.showY;
-                break;
-            }
-            case Key::Z: {
-                controls.showZ = !controls.showZ;
-                break;
-            }
-            case Key::SPACE: {
-                controls.enabled = !controls.enabled;
-                break;
-            }
-            case Key::LEFT_SHIFT:
-                controls.setTranslationSnap(1.f);
-                controls.setRotationSnap(math::degToRad(15.f));
-                controls.setScaleSnap(0.25f);
-            default:
-                break;
-        }
-    });
-    KeyAdapter keyUpListener(KeyAdapter::Mode::KEY_RELEASED, [&](KeyEvent evt) {
-        if (evt.key == Key::LEFT_SHIFT) {
-            controls.setTranslationSnap(std::nullopt);
-            controls.setRotationSnap(std::nullopt);
-            controls.setScaleSnap(std::nullopt);
-        }
-    });
-    canvas.addKeyListener(keyDownListener);
-    canvas.addKeyListener(keyUpListener);
+    ExampleKeyListener keyListener(controls);
+    canvas.addKeyListener(keyListener);
 
 
     canvas.onWindowResize([&](WindowSize size) {
@@ -125,4 +77,56 @@ int main() {
     canvas.animate([&] {
         renderer.render(scene, camera);
     });
+}
+
+
+void ExampleKeyListener::onKeyPressed(KeyEvent evt) {
+    switch (evt.key) {
+        case Key::Q: {
+            controls_.setSpace(controls_.getSpace() == "local" ? "world" : "local");
+            break;
+        }
+        case Key::W: {
+            controls_.setMode("translate");
+            break;
+        }
+        case Key::E: {
+            controls_.setMode("rotate");
+            break;
+        }
+        case Key::R: {
+            controls_.setMode("scale");
+            break;
+        }
+        case Key::X: {
+            controls_.showX = !controls_.showX;
+            break;
+        }
+        case Key::Y: {
+            controls_.showY = !controls_.showY;
+            break;
+        }
+        case Key::Z: {
+            controls_.showZ = !controls_.showZ;
+            break;
+        }
+        case Key::SPACE: {
+            controls_.enabled = !controls_.enabled;
+            break;
+        }
+        case Key::LEFT_SHIFT:
+            controls_.setTranslationSnap(1.f);
+            controls_.setRotationSnap(math::degToRad(15.f));
+            controls_.setScaleSnap(0.25f);
+        default:
+            break;
+    }
+}
+
+void ExampleKeyListener::onKeyReleased(KeyEvent evt) {
+    if (evt.key == Key::LEFT_SHIFT) {
+        controls_.setTranslationSnap(std::nullopt);
+        controls_.setRotationSnap(std::nullopt);
+        controls_.setScaleSnap(std::nullopt);
+    }
 }
