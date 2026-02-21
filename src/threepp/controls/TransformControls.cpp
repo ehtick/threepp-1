@@ -676,13 +676,11 @@ struct TransformControlsGizmo: Object3D {
 
                         handle->visible = this->state.axis->find(handle->name) != std::string::npos;
                     }
-                }
+                }// If updating helper, skip rest of the loop
 
-                // If updating helper, skip rest of the loop
                 continue;
-            }
 
-            // Align handles to current local or world rotation
+            }// Align handles to current local or world rotation
 
             handle->quaternion.copy(quaternion);
 
@@ -1045,7 +1043,6 @@ struct TransformControls::Impl {
         }
 
         void onMouseMove(const Vector2& pos) override {
-            if (!moveEnabled) return;
             if (!scope.state.enabled) return;
 
             const auto rect = scope.canvas.size();
@@ -1057,7 +1054,11 @@ struct TransformControls::Impl {
             _pos.x = std::max(-1.f, std::min(1.f, _pos.x));
             _pos.y = std::max(-1.f, std::min(1.f, _pos.y));
 
-            scope.pointerMove(button_, _pos);
+            scope.pointerHover(_pos);
+
+            if (moveEnabled) {
+                scope.pointerMove(button_, _pos);
+            }
         }
 
         void onMouseUp(int button, const Vector2& pos) override {
@@ -1101,6 +1102,10 @@ struct TransformControls::Impl {
         canvas.addMouseListener(myMouseListener);
 
         _raycaster.params.lineThreshold = 0.1f;
+    }
+
+    ~Impl() {
+        canvas.removeMouseListener(myMouseListener);
     }
 
     static std::optional<Intersection> intersectObjectWithRay(Object3D& object, Raycaster& raycaster, bool includeInvisible = false) {
@@ -1489,7 +1494,7 @@ void TransformControls::updateMatrixWorld(bool force) {
 
     pimpl_->state.eye.copy(pimpl_->state.cameraPosition).sub(pimpl_->state.worldPosition).normalize();
 
-    Object3D::updateMatrixWorld(force);
+    Object3D::updateMatrixWorld(true);
 }
 
 TransformControls& TransformControls::attach(Object3D& object) {
