@@ -146,7 +146,30 @@ void gl::GLTextures::uploadTexture(TextureProperties* textureProperties, Texture
 
     auto& mipmaps = texture.mipmaps();
 
-    if (dataTexture3D) {
+    if (dynamic_cast<DepthTexture*>(&texture)) {
+
+        if (texture.type == Type::Float) {
+
+            glInternalFormat = GL_DEPTH_COMPONENT32F;
+
+        } else if (texture.type == Type::UnsignedInt) {
+
+            glInternalFormat = GL_DEPTH_COMPONENT24;
+
+        } else if (texture.type == Type::UnsignedInt248) {
+
+            glInternalFormat = GL_DEPTH24_STENCIL8;
+
+        } else {
+
+            glInternalFormat = GL_DEPTH_COMPONENT24;
+        }
+
+        //
+
+        state->texImage2D(GL_TEXTURE_2D, 0, glInternalFormat, image.width, image.height, glFormat, glType, nullptr);
+
+    } else if (dataTexture3D) {
 
         state->texImage3D(GL_TEXTURE_3D, 0, glInternalFormat,
                           static_cast<int>(image.width),
@@ -245,6 +268,11 @@ void gl::GLTextures::deallocateRenderTarget(GLRenderTarget* renderTarget) {
         glDeleteTextures(1, &textureProperties->glTexture.value());
 
         info->memory.textures--;
+    }
+
+    if (renderTarget->depthTexture) {
+
+        renderTarget->depthTexture->dispose();
     }
 
     glDeleteFramebuffers(1, &renderTargetProperties->glFramebuffer.value());
@@ -431,15 +459,61 @@ void gl::GLTextures::setupRenderBufferStorage(unsigned int renderbuffer, GLRende
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
+void gl::GLTextures::setupDepthTexture(unsigned int framebuffer, GLRenderTarget* renderTarget) {
+
+    state->bindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+    // upload an empty depth texture with framebuffer size
+    if (!properties->textureProperties.get(renderTarget->depthTexture.get())->glTexture ||
+        renderTarget->depthTexture->image().width != renderTarget->width ||
+        renderTarget->depthTexture->image().height != renderTarget->height) {
+
+        renderTarget->depthTexture->image().width = renderTarget->width;
+        renderTarget->depthTexture->image().height = renderTarget->height;
+        renderTarget->depthTexture->needsUpdate();
+    }
+
+    setTexture2D(*renderTarget->depthTexture, 0);
+
+    const auto glDepthTexture = properties->textureProperties.get(renderTarget->depthTexture.get())->glTexture;
+
+    if (renderTarget->depthTexture->format == Format::Depth) {
+
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, *glDepthTexture, 0);
+        GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if (status != GL_FRAMEBUFFER_COMPLETE) {
+            std::cerr << "GLTextures: Depth texture framebuffer (depth) incomplete: 0x" << std::hex << status << std::dec << std::endl;
+        }
+    } else if (renderTarget->depthTexture->format == Format::DepthStencil) {
+
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, *glDepthTexture, 0);
+        GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if (status != GL_FRAMEBUFFER_COMPLETE) {
+            std::cerr << "GLTextures: Depth texture framebuffer (stencil) incomplete: 0x" << std::hex << status << std::dec << std::endl;
+        }
+    } else {
+
+        throw std::runtime_error("Unknown depthTexture format");
+    }
+}
+
 void gl::GLTextures::setupDepthRenderbuffer(GLRenderTarget* renderTarget) {
 
     const auto renderTargetProperties = properties->renderTargetProperties.get(renderTarget);
 
-    state->bindFramebuffer(GL_FRAMEBUFFER, renderTargetProperties->glFramebuffer.value());
-    GLuint glDepthbuffer;
-    glGenRenderbuffers(1, &glDepthbuffer);
-    renderTargetProperties->glDepthbuffer = glDepthbuffer;
-    setupRenderBufferStorage(*renderTargetProperties->glDepthbuffer, renderTarget);
+    if (renderTarget->depthTexture) {
+
+        setupDepthTexture(*renderTargetProperties->glFramebuffer, renderTarget);
+
+    } else {
+
+        state->bindFramebuffer(GL_FRAMEBUFFER, renderTargetProperties->glFramebuffer.value());
+        GLuint glDepthbuffer;
+        glGenRenderbuffers(1, &glDepthbuffer);
+        renderTargetProperties->glDepthbuffer = glDepthbuffer;
+        setupRenderBufferStorage(*renderTargetProperties->glDepthbuffer, renderTarget);
+    }
+
 
     state->bindFramebuffer(GL_FRAMEBUFFER, 0);
 }
