@@ -1,5 +1,5 @@
 
-#include "threepp/objects/TextNode.hpp"
+#include "threepp/objects/TextSprite.hpp"
 
 #include "external/stb/stb_truetype.h"
 #include "threepp/utils/ImageUtils.hpp"
@@ -8,9 +8,17 @@
 
 using namespace threepp;
 
-struct TextNode::Impl {
+struct TextSprite::Impl {
 
     Impl(Sprite* that, const std::filesystem::path& fontFile): that(that) {
+        loadFont(fontFile);
+
+        that->center.set(0, 1);
+
+        that->material()->as<SpriteMaterial>()->opacity = 1;
+    }
+
+    void loadFont(const std::filesystem::path& fontFile) {
         if (!std::filesystem::exists(fontFile)) {
             throw std::runtime_error("Font file not found: " + fontFile.string());
         }
@@ -20,18 +28,14 @@ struct TextNode::Impl {
 
         stbtt_InitFont(&font_, fontBuffer.data(), stbtt_GetFontOffsetForIndex(fontBuffer.data(), 0));
 
-        that->material()->as<MaterialWithMap>()->map = Texture::create(createText("empty"));
-
-        that->center.set(0, 1);
-
-        that->material()->as<MaterialWithMap>()->map->offset.set(0.5, 0.5);
+        that->material()->as<MaterialWithMap>()->map = Texture::create(createText(text_, 1));
+        that->material()->as<MaterialWithMap>()->map->offset.set(0.5f, 0.5f);
         that->material()->as<MaterialWithMap>()->map->needsUpdate();
 
-        that->material()->as<SpriteMaterial>()->opacity = 1;
     }
 
     void setText(const std::string& text, float worldScale) {
-        auto material = that->material()->as<MaterialWithMap>();
+        const auto material = that->material()->as<MaterialWithMap>();
         material->map->image() = createText(text, worldScale);
         material->map->needsUpdate();
     }
@@ -47,7 +51,7 @@ struct TextNode::Impl {
         map->needsUpdate();
     }
 
-    Image createText(const std::string& text, float worldScale = 1) {
+    Image createText(const std::string& text, float worldScale) {
         // Use stb_truetype to render the text into the texture
 
         if (text.empty()) {
@@ -146,7 +150,7 @@ struct TextNode::Impl {
 
         flipImage(rgba, 4, width, height);
 
-        const auto aspect = (float) width / height;
+        const auto aspect = static_cast<float>(width) / height;
         that->scale.set(worldScale * aspect, worldScale, 1);
 
         return {rgba, static_cast<unsigned int>(width), static_cast<unsigned int>(height)};
@@ -154,24 +158,30 @@ struct TextNode::Impl {
 
 private:
     Sprite* that;
+    std::string text_{"empty"};
 
     stbtt_fontinfo font_{};
     std::vector<unsigned char> fontBuffer;
 };
 
-TextNode::TextNode(const std::filesystem::path& fontPath)
+TextSprite::TextSprite(const std::filesystem::path& fontPath)
     : Sprite(nullptr), pimpl_(std::make_unique<Impl>(this, fontPath)) {
 }
 
-void TextNode::setText(const std::string& text, float worldScale) {
-    pimpl_->setText(text, worldScale);
-}
-std::shared_ptr<TextNode> TextNode::create(const std::filesystem::path& fontPath) {
-    return std::make_shared<TextNode>(fontPath);
+void TextSprite::setFont(const std::filesystem::path& fontPath) {
+    pimpl_->loadFont(fontPath);
 }
 
-void TextNode::setColor(const Color& color) {
+void TextSprite::setText(const std::string& text, float worldScale) {
+    pimpl_->setText(text, worldScale);
+}
+std::shared_ptr<TextSprite> TextSprite::create(const std::filesystem::path& fontPath) {
+    return std::make_shared<TextSprite>(fontPath);
+}
+
+void TextSprite::setColor(const Color& color) {
     pimpl_->setColor(color);
 }
 
-TextNode::~TextNode() = default;
+TextSprite::~TextSprite() = default;
+

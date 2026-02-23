@@ -175,7 +175,7 @@ set(publicHeaders
         "threepp/objects/Points.hpp"
         "threepp/objects/Reflector.hpp"
         "threepp/objects/Text.hpp"
-        "threepp/objects/TextNode.hpp"
+        "threepp/objects/TextSprite.hpp"
         "threepp/objects/Water.hpp"
 
         "threepp/textures/CubeTexture.hpp"
@@ -414,7 +414,7 @@ set(sources
         "threepp/objects/Sky.cpp"
         "threepp/objects/Sprite.cpp"
         "threepp/objects/Reflector.cpp"
-        "threepp/objects/TextNode.cpp"
+        "threepp/objects/TextSprite.cpp"
         "threepp/objects/Water.cpp"
 
         "threepp/textures/Texture.cpp"

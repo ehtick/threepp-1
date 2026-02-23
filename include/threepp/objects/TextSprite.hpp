@@ -11,20 +11,22 @@
 
 namespace threepp {
 
-    // A class for creating 2D text nodes in a 3D scene.
+    // A class for creating 2D text sprites in a 3D scene.
     // Only works with TrueType fonts.
-    class TextNode: public Sprite {
+    class TextSprite: public Sprite {
 
     public:
-        explicit TextNode(const std::filesystem::path& fontPath);
+        explicit TextSprite(const std::filesystem::path& fontPath);
+
+        void setFont(const std::filesystem::path& fontPath);
 
         void setColor(const Color& color);
 
-        void setText(const std::string& text, float worldScale);
+        void setText(const std::string& text, float worldScale = 1);
 
-        static std::shared_ptr<TextNode> create(const std::filesystem::path& fontPath);
+        static std::shared_ptr<TextSprite> create(const std::filesystem::path& fontPath);
 
-        ~TextNode() override;
+        ~TextSprite() override;
 
     private:
         struct Impl;
