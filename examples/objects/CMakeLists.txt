@@ -19,3 +19,7 @@ add_example(NAME "water" LINK_IMGUI WEB WEB_EMBED
 )
 
 add_example(NAME "particle_system" LINK_IMGUI)
+
+if (WIN32)
+    add_example(NAME "text_sprite")
+endif()
