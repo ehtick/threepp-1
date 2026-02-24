@@ -32,9 +32,10 @@ function(add_example)
         target_link_libraries("${arg_NAME}" PRIVATE assimp::assimp)
     endif ()
 
-    target_compile_definitions(${arg_NAME} PRIVATE DATA_FOLDER="${PROJECT_SOURCE_DIR}/data")
 
     if (DEFINED EMSCRIPTEN)
+
+        target_compile_definitions(${arg_NAME} PRIVATE DATA_FOLDER="data")
 
         set(LINK_FLAGS " --bind -sUSE_GLFW=3 -sGL_DEBUG=1 -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sFULL_ES3 -sASSERTIONS -sALLOW_MEMORY_GROWTH -sNO_DISABLE_EXCEPTION_CATCHING -sWASM=1")
         if (arg_WEB_EMBED)
@@ -47,6 +48,8 @@ function(add_example)
                 PROPERTIES SUFFIX ".html"
                 LINK_FLAGS "${LINK_FLAGS}")
 
+    else ()
+        target_compile_definitions(${arg_NAME} PRIVATE DATA_FOLDER="${PROJECT_SOURCE_DIR}/data")
     endif (DEFINED EMSCRIPTEN)
 
 endfunction()
